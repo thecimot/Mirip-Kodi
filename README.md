@@ -6,3 +6,5 @@ Yang Tampilanya Mirip Dengan Kodi Media Center, ya kita tahu kalau player bawaan
 Dengan Script ini anda akan merasakan kualitas gambar MPV yang mendukung banyak GLSL Shader dan berbagai macam filter.
 
 Mirip Kodi Juga menyertakan Sript Python Untuk Auto Scrapping Metadada,Poster,Clear logo dll dari TMDB a.k.a https://www.themoviedb.org/
+![Spring Clear Logo](Screenshoot/Spring_Clear_Logo.png)
+![Spring Poster](Screenshoot/Spring_Poster.png)
