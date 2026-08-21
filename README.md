@@ -12,29 +12,31 @@ Clear Logo, Genre dan Jam akan muncul saat Mouse Bergerak dan akan menghilang de
 Poster Rating dan Sinopsis akan muncul saat Right Clik (Klik Kanan Pada Mouse) dan akan hilang jika Klik Kanan Kedua Kalinya.
 ![Spring Poster](Screenshoot/Spring_Poster.png)
 
-# Mirip-Kodi (Media Library Scanner)
+# Mirip-Kodi (Media Library Scanner & MPV OSD Overlay)
 
-Skrip otomatis berbasis Python untuk memindai direktori film (Movies) dan serial TV (TV Series), mengunduh metadata resmi dari TMDB (The Movie Database), serta mengunduh sekaligus menajamkan gambar poster dan clearlogo secara otomatis.
-
-Setelah instalasi, skrip ini dapat dijalankan langsung dari terminal sebagai perintah global sistem (`scan_movies`).
+Proyek ini adalah sistem otomasi pustaka media terintegrasi bergaya Kodi yang terdiri dari dua komponen utama:
+1. **`scan_movies`**: Skrip otomatis berbasis Python untuk memindai direktori film/serial TV dan mengunduh metadata serta gambar dari TMDB.
+2. **`movie-info.lua`**: Skrip Lua untuk pemutar video MPV yang membaca metadata hasil pemindaian dan menampilkannya sebagai antarmuka info interaktif (poster, sinopsis, genre, dan jam dinding digital).
 
 ## Fitur Utama
 
-* Pemindaian otomatis folder Film dan Serial TV secara rekursif.
-* Mengunduh metadata resmi TMDB dan menyimpannya dalam format `metadata.json`.
-* Pencarian sinopsis otomatis dalam bahasa Indonesia (`id-ID`) dengan fallback bahasa Inggris (`en-US`).
-* Mengunduh poster film serta gambar logo jernih (`clearlogo.png`).
-* Pemrosesan gambar otomatis (kompresi ukuran dan penajaman logo) menggunakan Pillow.
+* **Pemindaian Otomatis**: Membaca folder Film dan Serial TV secara rekursif.
+* **Integrasi TMDB**: Mengunduh informasi serta sinopsis otomatis berbahasa Indonesia (`id-ID`).
+* **Pemberbersih Aset**: Mengunduh poster film serta mengompresi dan menajamkan logo jernih (`clearlogo.png`) menggunakan Pillow.
+* **Antarmuka MPV Bergaya Kodi**: Menampilkan overlay poster, rating, daftar genre, sinopsis terbungkus rapi, jam waktu nyata, serta estimasi waktu film selesai.
+* **Visibilitas Pintar**: Informasi otomatis muncul saat video dijeda (pause) atau kursor tetikus digerakkan, dan tersembunyi otomatis saat film dimainkan.
 
 ## Persyaratan Sistem
 
-Sebelum menjalankan skrip ini, pastikan sistem Anda memenuhi kebutuhan berikut:
+Sebelum memulai instalasi, pastikan sistem Linux Anda memenuhi kebutuhan berikut:
 * **Sistem Operasi**: Linux / Unix-based (Skrip membaca path direktori media eksternal `/run/media/...`).
 * **Python**: Versi 3.x atau yang terbaru.
+* **Aplikasi Pemutar**: [MPV Player](https://mpv.io) terinstal di sistem.
+* **Alat Pendukung**: `ffmpeg` dan `ffprobe` (Bawaan sistem Linux, diperlukan oleh skrip MPV untuk memproses gambar).
 
 ### Dependensi Python
 
-Skrip ini memerlukan library pihak ketiga **Pillow** untuk memproses gambar. Instal melalui terminal Anda:
+Skrip pemindai memerlukan library pihak ketiga **Pillow** untuk memproses gambar. Instal melalui terminal Anda:
 
 ```bash
 pip install Pillow
@@ -45,13 +47,12 @@ pip install Pillow
 Skrip ini memerlukan otentikasi ke API TMDB agar dapat berfungsi. Disarankan menggunakan **TMDB Read Access Token (v4 auth)** yang dimasukkan ke dalam file `.bashrc` Anda.
 
 ### Cara Mendapatkan Token TMDB (Gratis):
-1. Buka situs resmi [The Movie Database (TMDB)](https://themoviedb.org) dan masuk ke akun Anda (buat akun baru jika belum punya).
+1. Buka situs resmi [The Movie Database (TMDB)](https://themoviedb.org) dan masuk ke akun Anda.
 2. Klik ikon profil Anda di pojok kanan atas, lalu pilih **Settings**.
 3. Pada menu sebelah kiri, klik tab **API**.
 4. Klik tautan **Create** di bawah bagian "Request an API Key", lalu pilih jenis aplikasi **Developer**.
 5. Isi formulir informasi aplikasi yang diminta (Anda bisa mengisi nama proyek dengan `Mirip-Kodi` dan URL dengan tautan GitHub Anda).
-6. Setelah menyetujui persyaratan, API Key Anda akan langsung dibuat.
-7. Cari bagian **API Read Access Token (v4 auth)** yang berupa teks kode sangat panjang, lalu salin (copy) seluruh kode tersebut.
+6. Setelah menyetujui persyaratan, cari bagian **API Read Access Token (v4 auth)** yang berupa teks kode sangat panjang, lalu salin (copy) seluruh kode tersebut.
 
 ### Memasukkan Token ke Sistem:
 Jalankan perintah berikut di terminal untuk memasukkan token Anda secara otomatis ke dalam konfigurasi sistem Linux:
@@ -64,43 +65,54 @@ echo 'export TMDB_TOKEN="isi_read_access_token_v4_anda_di_sini"' >> ~/.bashrc
 source ~/.bashrc
 ```
 
-*Catatan: Pastikan Anda mengganti `"isi_read_access_token_v4_anda_di_sini"` dengan kode token panjang yang sudah Anda salin dari dasbor TMDB sebelum menekan Enter.*
+*Catatan: Pastikan Anda mengganti `"isi_read_access_token_v4_anda_di_sini"` dengan kode token panjang yang sudah Anda salin dari dasbor TMDB sebelum menekan Enter [1].*
 
-## Cara Instalasi (`.local/bin`)
+## Langkah Instalasi Components
 
-Agar skrip dapat dipanggil langsung dari mana saja di terminal tanpa mengetik ekstensi `.py`, ikuti langkah pemasangan berikut:
+Ikuti langkah-langkah pemasangan berikut di terminal untuk memasang pemindai global dan pemutar MPV secara berdampingan:
 
-1. **Clone Repositori ini:**
-   ```bash
-   git clone https://github.com/thecimot/Mirip-Kodi
-   cd Mirip-Kodi
-   ```
+### 1. Unduh (Clone) Repositori
+```bash
+git clone https://github.com
+cd Mirip-Kodi
+```
 
-2. **Buat Folder Bin Lokal & Pindahkan File:**
-   ```bash
-   mkdir -p ~/.local/bin
-   cp scan_movies ~/.local/bin/
-   ```
+### 2. Pasang Pemindai Media (`scan_movies`) ke Sistem
+Agar skrip dapat dipanggil langsung dari mana saja di terminal tanpa mengetik ekstensi `.py`:
+```bash
+# Buat folder bin lokal jika belum ada
+mkdir -p ~/.local/bin
 
-3. **Berikan Hak Akses Eksekusi:**
-   ```bash
-   chmod +x ~/.local/bin/scan_movies
-   ```
+# Salin berkas pemindai utama
+cp scan_movies ~/.local/bin/
 
-4. **Daftarkan ke PATH Sistem (Jika belum):**
-   Pastikan baris berikut sudah ada di bagian bawah file `~/.bashrc` Anda:
-   ```bash
-   export PATH="HOME/.local/bin:PATH"
-   ```
-   Jangan lupa jalankan `source ~/.bashrc` setelah menambahkannya.
+# Berikan hak akses eksekusi ke berkas
+chmod +x ~/.local/bin/scan_movies
+```
+*Pastikan folder `~/.local/bin` sudah terdaftar di variabel `$PATH` sistem Anda di dalam file `.bashrc`.*
+
+### 3. Pasang Antarmuka MPV (`movie-info.lua`)
+Salin berkas skrip Lua langsung ke dalam direktori konfigurasi bawaan milik aplikasi MPV Anda:
+```bash
+# Buat direktori scripts MPV jika belum ada
+mkdir -p ~/.config/mpv/scripts
+
+# Salin skrip antarmuka OSD
+cp movie-info.lua ~/.config/mpv/scripts/
+```
 
 ## Cara Penggunaan
 
-Setelah langkah instalasi di atas selesai, Anda bisa langsung menjalankan pemindaian dari folder mana saja di terminal cukup dengan mengetik:
-
+### Memindai Berkas Media
+Buka terminal Anda, masuk ke sistem, lalu cukup ketik perintah global berikut untuk memperbarui seluruh aset gambar serta metadata json secara otomatis:
 ```bash
 scan_movies
 ```
+
+### Menampilkan Informasi di MPV
+Putar video film atau serial TV Anda menggunakan MPV. Antarmuka informasi pintar akan muncul otomatis saat Anda menggerakkan tetikus atau menjeda video. Untuk memunculkan panel informasi lengkap (Poster dan Sinopsis), tekan tombol hotkey berikut pada papan ketik Anda:
+* Tombol **`=`** (Sama Dengan) [2]
+* Klik **Tombol Kanan Tetikus (Right-Click)** di jendela pemutar MPV [2]
 
 ## Lisensi
 
