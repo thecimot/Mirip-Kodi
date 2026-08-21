@@ -39,6 +39,7 @@ Skrip ini memerlukan library pihak ketiga **Pillow** untuk memproses gambar. Ins
 ```bash
 pip install Pillow
 ```
+
 ## Konfigurasi Lingkungan (.bashrc)
 
 Skrip ini memerlukan otentikasi ke API TMDB agar dapat berfungsi. Disarankan menggunakan **TMDB Read Access Token (v4 auth)** yang dimasukkan ke dalam file `.bashrc` Anda.
@@ -64,25 +65,6 @@ source ~/.bashrc
 ```
 
 *Catatan: Pastikan Anda mengganti `"isi_read_access_token_v4_anda_di_sini"` dengan kode token panjang yang sudah Anda salin dari dasbor TMDB sebelum menekan Enter.*
-
-## Konfigurasi Lingkungan (.bashrc)
-
-Skrip ini memerlukan otentikasi ke API TMDB agar dapat berfungsi. Anda harus memasukkan salah satu dari **TMDB Token** atau **TMDB API Key** ke dalam file `.bashrc` Anda.
-
-Jalankan perintah berikut di terminal untuk menambahkannya secara otomatis (pilih salah satu atau isi keduanya):
-
-```bash
-# Tambahkan Token TMDB (Disarankan)
-echo 'export TMDB_TOKEN="isi_bearer_token_tmdb_anda"' >> ~/.bashrc
-
-# ATAU Tambahkan API Key TMDB
-echo 'export TMDB_API_KEY="isi_api_key_tmdb_anda"' >> ~/.bashrc
-
-# Muat ulang konfigurasi terminal
-source ~/.bashrc
-```
-
-*Catatan: Ganti `"isi_bearer_token_tmdb_anda"` atau `"isi_api_key_tmdb_anda"` dengan kredensial asli dari akun developer TMDB Anda sebelum menjalankan perintah.*
 
 ## Cara Instalasi (`.local/bin`)
 
@@ -123,4 +105,3 @@ scan_movies
 ## Lisensi
 
 Proyek ini dilisensikan di bawah **MIT License** - Lihat isi file kode untuk detail hak cipta oleh Hartono (2026).
-
