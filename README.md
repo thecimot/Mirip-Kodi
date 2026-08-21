@@ -59,7 +59,7 @@ Ikuti langkah-langkah pemasangan berikut di terminal untuk memasang pemindai glo
 
 ### 1. Unduh (Clone) Repositori
 ```bash
-git clone https://github.com
+git clone https://github.com/thecimot/Mirip-Kodi
 cd Mirip-Kodi
 ```
 
