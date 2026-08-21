@@ -12,51 +12,72 @@ Clear Logo, Genre dan Jam akan muncul saat Mouse Bergerak dan akan menghilang de
 Poster Rating dan Sinopsis akan muncul saat Right Clik (Klik Kanan Pada Mouse) dan akan hilang jika Klik Kanan Kedua Kalinya.
 ![Spring Poster](Screenshoot/Spring_Poster.png)
 
-# Nama Program Anda
+# Media Library Scanner (Clean Log Run)
 
-Penjelasan singkat tentang apa yang dilakukan oleh program ini.
+Skrip otomatis berbasis Python untuk memindai direktori film (Movies) dan serial TV (TV Series), mengunduh metadata dari TMDB (The Movie Database), serta mengunduh sekaligus mengoptimalkan poster dan gambar clearlogo.
+
+## Fitur Utama
+
+* Pemindaian otomatis folder Film dan Serial TV secara rekursif.
+* Mengunduh metadata resmi TMDB dan menyimpannya dalam format `metadata.json`.
+* Pencarian sinopsis otomatis dalam bahasa Indonesia (`id-ID`) dengan fallback bahasa Inggris (`en-US`).
+* Mengunduh poster film serta logo jernih (`clearlogo.png`).
+* Pemrosesan gambar otomatis (kompresi ukuran dan penajaman logo) menggunakan Pillow.
 
 ## Persyaratan Sistem
 
-Sebelum memulai, pastikan sistem Anda sudah terinstal:
-* [Git](https://git-scm.com)
-* [Node.js](https://nodejs.org) (atau sesuaikan dengan bahasa pemrograman Anda)
+Sebelum menjalankan skrip ini, pastikan sistem Anda memenuhi kebutuhan berikut:
+* **Sistem Operasi**: Linux / Unix-based (Skrip membaca path direktori media eksternal `/run/media/...`).
+* **Python**: Versi 3.x atau yang terbaru.
 
-## Cara Instalasi
+### Dependensi Python
 
-Buka terminal Anda dan jalankan perintah-perintah berikut secara berurutan:
+Skrip ini memerlukan library pihak ketiga **Pillow** untuk memproses gambar. Instal melalui terminal Anda:
 
-1. **Clone repositori ini:**
-   ```bash
-   git clone https://github.com
-   ```
-
-2. **Masuk ke folder proyek:**
-   ```bash
-   cd nama-repo
-   ```
-
-3. **Install dependensi:**
-   ```bash
-   npm install
-   ```
+```bash
+pip install Pillow
+```
 
 ## Konfigurasi Lingkungan (.bashrc)
 
-Program ini membutuhkan konfigurasi variabel lingkungan di dalam file `.bashrc`. Anda bisa menambahkannya secara otomatis dengan menjalankan perintah ini di terminal:
+Skrip ini memerlukan otentikasi ke API TMDB agar dapat berfungsi. Anda harus memasukkan salah satu dari **TMDB Token** atau **TMDB API Key** ke dalam file `.bashrc` Anda.
+
+Jalankan perintah berikut di terminal untuk menambahkannya secara otomatis (pilih salah satu atau isi keduanya):
 
 ```bash
-echo 'export API_KEY="isi_api_key_di_sini"' >> ~/.bashrc
-echo 'export DB_HOST="localhost"' >> ~/.bashrc
+# Tambahkan Token TMDB (Disarankan)
+echo 'export TMDB_TOKEN="isi_bearer_token_tmdb_anda"' >> ~/.bashrc
+
+# ATAU Tambahkan API Key TMDB
+echo 'export TMDB_API_KEY="isi_api_key_tmdb_anda"' >> ~/.bashrc
+
+# Muat ulang konfigurasi terminal
 source ~/.bashrc
 ```
 
-*Catatan: Ganti `"isi_api_key_di_sini"` dengan nilai yang sesuai sebelum menjalankan perintah.*
+*Catatan: Ganti `"isi_bearer_token_tmdb_anda"` atau `"isi_api_key_tmdb_anda"` dengan kredensial asli dari akun developer TMDB Anda sebelum menekan Enter.*
 
-## Cara Menjalankan Program
+## Cara Penggunaan
 
-Setelah semua langkah di atas selesai, jalankan program dengan perintah:
+1. **Clone Repositori ini:**
+   ```bash
+   git clone https://github.com
+   cd nama-repo
+   ```
 
-```bash
-npm start
-```
+2. **Sesuaikan Direktori Media (Opsional):**
+   Jika lokasi penyimpanan media Anda berbeda, sesuaikan variabel `MOVIES_DIR` dan `TV_DIR` di dalam file skrip Python sebelum dijalankan:
+   ```python
+   MOVIES_DIR = Path("/run/media/cimot/cimot/MOVIES")
+   TV_DIR = Path("/run/media/cimot/cimot/TV SERIES")
+   ```
+
+3. **Jalankan Skrip:**
+   Eksekusi skrip utama menggunakan Python 3 melalui terminal Anda:
+   ```bash
+   python3 nama_file_skrip.py
+   ```
+
+## Lisensi
+
+Proyek ini dilisensikan di bawah **MIT License** - Lihat isi file kode untuk detail hak cipta oleh Hartono (2026).
