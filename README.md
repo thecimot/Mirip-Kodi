@@ -9,5 +9,5 @@ Mirip Kodi Juga menyertakan Sript Python Untuk Auto Scrapping Metadada,Poster,Cl
 Clear Logo, Genre dan Jam akan muncul saat Mouse Bergerak dan akan menghilang dengan sendirinya default 10 detik.
 ![Spring Clear Logo](Screenshoot/Spring_Clear_Logo.png)
 
-Poster Rating dan Sinopsis akan muncul saat Right Clik (Klik Kanan Pada Mouse) dan akan hilang jika klik kanan lagi.
+Poster Rating dan Sinopsis akan muncul saat Right Clik (Klik Kanan Pada Mouse) dan akan hilang jika klik kanan kedua.
 ![Spring Poster](Screenshoot/Spring_Poster.png)
