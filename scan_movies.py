@@ -1,4 +1,3 @@
-
 #!/usr/bin/env python3
 
 import os
@@ -9,65 +8,35 @@ import urllib.parse
 import urllib.request
 import urllib.error
 from pathlib import Path
+from PIL import Image, ImageFilter
 
 
 # ============================================================
-# KONFIGURASI
+# KONFIGURASI DIREKTORI
 # ============================================================
 
 MOVIES_DIR = Path("/run/media/cimot/cimot/MOVIES")
 TV_DIR = Path("/run/media/cimot/cimot/TV SERIES")
 
 # ------------------------------------------------------------
-# PILIH SALAH SATU AUTENTIKASI TMDB
-#
-# 1. API Read Access Token
-#    biasanya diawali eyJ...
-#
-# ATAU
-#
-# 2. API Key v3
+# AUTENTIKASI TMDB
 # ------------------------------------------------------------
-
 TMDB_READ_TOKEN = os.getenv("TMDB_TOKEN", "").strip()
-
 TMDB_API_KEY = os.getenv("TMDB_API_KEY", "").strip()
 
-
-# Bahasa metadata
-LANGUAGE = "id-ID"
-
-# Bahasa fallback jika metadata Indonesia kosong
+PRIMARY_LANGUAGE = "id-ID"
 FALLBACK_LANGUAGE = "en-US"
 
-# Ukuran poster TMDB
 POSTER_SIZE = "w780"
+LOGO_SIZE = "original"
 
-# Ukuran clear logo
-LOGO_SIZE = "w500"
-
-# Lewati folder yang sudah memiliki metadata.json
+# Kontrol penimpaan file
 SKIP_EXISTING = True
-
-# Jika True, metadata lama akan dibuat ulang
 FORCE_RESCAN = False
-
-# Ekstensi video yang dikenali
-VIDEO_EXTENSIONS = {
-    ".mkv",
-    ".mp4",
-    ".avi",
-    ".mov",
-    ".m4v",
-    ".webm",
-    ".ts",
-    ".mpeg",
-    ".mpg",
-}
 
 
 # ============================================================
-# OUTPUT
+# HELPER OUTPUT
 # ============================================================
 
 def line():
@@ -83,18 +52,46 @@ def print_warning(message):
 
 
 # ============================================================
-# TMDB REQUEST
+# IMAGE PROCESSING (FIX DEPRECATION WARNING)
+# ============================================================
+
+def process_clearlogo(file_path):
+    try:
+        with Image.open(file_path) as img:
+            img = img.convert("RGBA")
+            clean_img = img.copy()
+
+            width, height = clean_img.size
+            if width > 3000 or height > 3000:
+                new_size = (width // 2, height // 2)
+                clean_img = clean_img.resize(new_size, Image.Resampling.LANCZOS)
+
+            sharpened_img = clean_img.filter(ImageFilter.SHARPEN)
+            sharpened_img.save(file_path, "PNG", optimize=True)
+        return True
+    except Exception as error:
+        print_warning(f"Gagal memproses logo {file_path.name}: {error}")
+        return False
+
+
+def process_all_existing_logos(root_dir):
+    root_path = Path(root_dir)
+    if not root_path.exists():
+        return
+
+    print(f"Memproses & menajamkan semua clearlogo.png di {root_path}...")
+    count = 0
+    for logo_file in root_path.rglob("clearlogo.png"):
+        if process_clearlogo(logo_file):
+            count += 1
+    print(f"Selesai! Berhasil memproses {count} file clearlogo.png.")
+
+
+# ============================================================
+# TMDB REQUEST WITH SYNOPSIS FALLBACK & DOWNLOAD
 # ============================================================
 
 def tmdb_request(endpoint, params=None, language=None):
-    """
-    Request ke TMDB API v3.
-
-    Mendukung:
-    - TMDB Read Access Token
-    - API Key v3
-    """
-
     if params is None:
         params = {}
 
@@ -106,1455 +103,418 @@ def tmdb_request(endpoint, params=None, language=None):
         "User-Agent": "MovieLibraryScanner/1.0",
     }
 
-    # API Read Access Token
     if TMDB_READ_TOKEN:
-        headers["Authorization"] = (
-            f"Bearer {TMDB_READ_TOKEN}"
-        )
-
-    # API Key v3
+        headers["Authorization"] = f"Bearer {TMDB_READ_TOKEN}"
     elif TMDB_API_KEY:
         params["api_key"] = TMDB_API_KEY
-
     else:
-        print_error(
-            "TMDB_TOKEN atau TMDB_API_KEY belum diatur."
-        )
+        print_error("TMDB_TOKEN atau TMDB_API_KEY belum diatur.")
         return None
 
     query = urllib.parse.urlencode(params)
-
-    url = (
-        f"https://api.themoviedb.org/3"
-        f"{endpoint}"
-    )
-
+    url = f"https://api.themoviedb.org/3{endpoint}"
     if query:
         url += f"?{query}"
 
-    request = urllib.request.Request(
-        url,
-        headers=headers,
-    )
+    request = urllib.request.Request(url, headers=headers)
 
     try:
-        with urllib.request.urlopen(
-            request,
-            timeout=20,
-        ) as response:
-
-            data = response.read()
-
-            return json.loads(
-                data.decode("utf-8")
-            )
-
-    except urllib.error.HTTPError as error:
-
-        print(
-            f"TMDB HTTP: {error.code}"
-        )
-
-        try:
-            body = error.read().decode(
-                "utf-8",
-                errors="replace",
-            )
-
-            print(body)
-
-        except Exception:
-            pass
-
-        return None
-
-    except urllib.error.URLError as error:
-
-        print_error(
-            f"Koneksi TMDB gagal: {error.reason}"
-        )
-
-        return None
-
+        with urllib.request.urlopen(request, timeout=20) as response:
+            return json.loads(response.read().decode("utf-8"))
     except Exception as error:
-
-        print_error(
-            f"TMDB request gagal: {error}"
-        )
-
+        print_error(f"TMDB request gagal ({endpoint}): {error}")
         return None
 
 
-# ============================================================
-# DOWNLOAD FILE
-# ============================================================
+def fetch_details_with_id_synopsis(endpoint):
+    details_id = tmdb_request(endpoint, language=PRIMARY_LANGUAGE)
+    if not details_id:
+        return tmdb_request(endpoint, language=FALLBACK_LANGUAGE)
+
+    if not details_id.get("overview") or details_id.get("overview").strip() == "":
+        details_en = tmdb_request(endpoint, language=FALLBACK_LANGUAGE)
+        if details_en and details_en.get("overview"):
+            details_id["overview"] = details_en["overview"]
+
+    return details_id
+
 
 def download_file(url, destination):
-    """
-    Download file ke destination.
-    """
-
     destination = Path(destination)
-
-    try:
-
-        request = urllib.request.Request(
-            url,
-            headers={
-                "User-Agent":
-                    "MovieLibraryScanner/1.0"
-            },
-        )
-
-        with urllib.request.urlopen(
-            request,
-            timeout=60,
-        ) as response:
-
-            with open(destination, "wb") as output:
-
-                shutil.copyfileobj(
-                    response,
-                    output,
-                )
-
+    if SKIP_EXISTING and destination.exists() and not FORCE_RESCAN:
+        print(f"      File {destination.name} sudah ada, dilewati.")
         return True
 
+    try:
+        request = urllib.request.Request(url, headers={"User-Agent": "MovieLibraryScanner/1.0"})
+        with urllib.request.urlopen(request, timeout=60) as response:
+            with open(destination, "wb") as output:
+                shutil.copyfileobj(response, output)
+        return True
     except Exception as error:
-
-        print_error(
-            f"Gagal download {destination.name}: {error}"
-        )
-
+        print_error(f"Gagal download {destination.name}: {error}")
         return False
 
 
 # ============================================================
-# FIND VIDEO
-# ============================================================
-
-def find_video(folder):
-    """
-    Cari file video pertama secara rekursif.
-
-    Folder TV kadang memiliki struktur:
-
-    Breaking Bad/
-        Season 01/
-            episode.mkv
-    """
-
-    videos = []
-
-    try:
-
-        for path in folder.rglob("*"):
-
-            if not path.is_file():
-                continue
-
-            if path.suffix.lower() in VIDEO_EXTENSIONS:
-
-                videos.append(path)
-
-    except Exception as error:
-
-        print_error(
-            f"Gagal membaca folder: {error}"
-        )
-
-        return None
-
-    if not videos:
-        return None
-
-    videos.sort()
-
-    return videos[0]
-
-
-# ============================================================
-# CLEAN NAME
+# EXTRACT TITLE, YEAR & SEASON
 # ============================================================
 
 def normalize_name(text):
-    """
-    Ubah:
-
-    Dune.Part.Two.2024
-    →
-    Dune Part Two 2024
-    """
-
     text = str(text)
-
-    # Ganti separator umum menjadi spasi
-    text = re.sub(
-        r"[._]+",
-        " ",
-        text,
-    )
-
-    text = re.sub(
-        r"\s+",
-        " ",
-        text,
-    )
-
-    return text.strip()
-
-
-# ============================================================
-# REMOVE BRACKETED RELEASE TAGS
-# ============================================================
-
-def remove_release_brackets(text):
-    """
-    Hapus tag seperti:
-
-    [1080p]
-    [BluRay]
-    [YTS MX]
-    [TGx]
-
-    tetapi jangan terlalu agresif.
-    """
-
-    text = re.sub(
-        r"\[[^\]]+\]",
-        " ",
-        text,
-    )
-
-    return text
-
-
-# ============================================================
-# RELEASE KEYWORDS
-# ============================================================
-
-RELEASE_PATTERNS = [
-
-    # Resolution
-    r"\b\d{3,4}p\b",
-    r"\b2160p\b",
-    r"\b1440p\b",
-    r"\b1080p\b",
-    r"\b720p\b",
-    r"\b480p\b",
-
-    # Source
-    r"\bBluRay\b",
-    r"\bBDRip\b",
-    r"\bBRRip\b",
-    r"\bWEBRip\b",
-    r"\bWEB-DL\b",
-    r"\bWEB DL\b",
-    r"\bWEB\b",
-    r"\bHDTV\b",
-    r"\bDVDRip\b",
-    r"\bDVD\b",
-    r"\bAMZN\b",
-    r"\bNF\b",
-    r"\bPCOK\b",
-    r"\bDS4K\b",
-    r"\bMA\b",
-
-    # Codec
-    r"\bx264\b",
-    r"\bx265\b",
-    r"\bH\.?264\b",
-    r"\bH\.?265\b",
-    r"\bHEVC\b",
-    r"\bAV1\b",
-    r"\bAVC\b",
-    r"\b10bit\b",
-    r"\b8bit\b",
-
-    # Audio
-    r"\bAAC\b",
-    r"\bAC3\b",
-    r"\bEAC3\b",
-    r"\bDDP?\b",
-    r"\bDDP\d+(?:\.\d+)?\b",
-    r"\bDTS(?:-HD)?\b",
-    r"\bTRUEHD\b",
-    r"\bATMOS\b",
-    r"\bFLAC\b",
-    r"\bOPUS\b",
-    r"\bMP3\b",
-    r"\b6CH\b",
-    r"\b2CH\b",
-    r"\b5\s*1\b",
-    r"\b7\s*1\b",
-
-    # Misc release
-    r"\bCOMPLETE\b",
-    r"\bUNCUT\b",
-    r"\bREPACK\b",
-    r"\bPROPER\b",
-    r"\bREMUX\b",
-    r"\bINTERNAL\b",
-    r"\bEXTENDED\b",
-    r"\bLIMITED\b",
-    r"\bDUAL-AUDIO\b",
-    r"\bMULTI\d*\b",
-
-    # Language
-    r"\bINDONESIAN\b",
-    r"\bIND\b",
-    r"\bENG\b",
-    r"\bGER\b",
-    r"\bSPA\b",
-    r"\bKOR\b",
-    r"\bJPN\b",
-    r"\bITA\b",
-    r"\bFRE\b",
-    r"\bRUS\b",
-    r"\bCHINESE\b",
-]
-
-
-# ============================================================
-# REMOVE RELEASE INFORMATION
-# ============================================================
-
-def remove_release_info(text):
-    """
-    Bersihkan informasi release.
-
-    Contoh:
-
-    28 Days Later 2002 1080p BluRay DDP5 1 x265
-
-    menjadi:
-
-    28 Days Later 2002
-    """
-
-    # Hilangkan [TAG]
-    text = remove_release_brackets(text)
-
-    # Hapus bagian setelah release group
-    #
-    # Contoh:
-    #
-    # x265-PSA
-    # x265-KONTRAST
-    # HEVC-PSA
-    #
-    text = re.sub(
-        r"-(?:GalaxyRG\d*|PSA|KONTRAST|MeGusta|"
-        r"YTS(?:MX)?|RAV1NE|Asiimov|"
-        r"Saon-nAV1gator|dAV1nci|"
-        r"HETeam|AMBER|SAMPA)"
-        r".*$",
-        " ",
-        text,
-        flags=re.IGNORECASE,
-    )
-
-    # Hapus setiap release keyword
-    for pattern in RELEASE_PATTERNS:
-
-        text = re.sub(
-            pattern,
-            " ",
-            text,
-            flags=re.IGNORECASE,
-        )
-
-    # Bersihkan tanda - yang tersisa
-    text = re.sub(
-        r"\s*-\s*",
-        " ",
-        text,
-    )
-
-    text = re.sub(
-        r"\s+",
-        " ",
-        text,
-    )
-
-    return text.strip()
-
-
-# ============================================================
-# EXTRACT YEAR
-# ============================================================
-
-def extract_year(text):
-    """
-    Cari tahun film.
-
-    1900-2099
-    """
-
-    match = re.search(
-        r"(?<!\d)"
-        r"(19\d{2}|20\d{2})"
-        r"(?!\d)",
-        text,
-    )
-
-    if match:
-        return match.group(1)
-
-    return None
-
-
-# ============================================================
-# EXTRACT TV SEASON
-# ============================================================
-
-def extract_season(text):
-    """
-    Cari:
-
-    S01
-    Season 1
-    SEASON 01
-    """
-
-    patterns = [
-
-        r"\bS(\d{1,2})\b",
-
-        r"\bSeason\s*(\d{1,2})\b",
-
-        r"\bSEASON\s*(\d{1,2})\b",
-    ]
-
-    for pattern in patterns:
-
-        match = re.search(
-            pattern,
-            text,
-            flags=re.IGNORECASE,
-        )
-
-        if match:
-
-            return int(
-                match.group(1)
-            )
-
-    return None
-
-
-# ============================================================
-# EXTRACT TITLE
-# ============================================================
-
-def extract_title(raw_name, media_type):
-    """
-    Menghasilkan:
-
-    title
-    year
-    season
-    """
-
-    # Normalisasi awal
-    text = normalize_name(raw_name)
-
-    # Hilangkan extension jika ikut terbaca
-    text = re.sub(
-        r"\.[A-Za-z0-9]{2,4}$",
-        "",
-        text,
-    )
-
-    # Tahun dari nama asli
-    year = extract_year(text)
-
-    # Season TV
-    season = None
-
-    if media_type == "tv":
-
-        season = extract_season(text)
-
-    # --------------------------------------------------------
-    # STOP TITLE PADA TAHUN
-    #
-    # 28 Days Later (2002) 1080p
-    # ↓
-    # 28 Days Later
-    # --------------------------------------------------------
-
-    year_match = re.search(
-        r"(?<!\d)"
-        r"(19\d{2}|20\d{2})"
-        r"(?!\d)",
-        text,
-    )
-
+    text = re.sub(r"[._]+", " ", text)
+    return re.sub(r"\s+", " ", text).strip()
+
+
+def extract_movie_info(folder_name):
+    text = normalize_name(folder_name)
+    
+    year_match = re.search(r"\b(19\d{2}|20\d{2})\b", text)
+    year = year_match.group(1) if year_match else None
+    
     if year_match:
-
-        before_year = (
-            text[:year_match.start()]
-        )
-
-        after_year = (
-            text[year_match.end():]
-        )
-
-        # Jika sebelum tahun masih punya judul,
-        # kita gunakan bagian sebelum tahun.
-        if before_year.strip():
-
-            text = before_year
-
-        else:
-
-            text = (
-                before_year
-                + " "
-                + after_year
-            )
-
-    # --------------------------------------------------------
-    # TV:
-    #
-    # Fool Me Once S01
-    # ↓
-    # Fool Me Once
-    #
-    # From Season 3
-    # ↓
-    # From
-    # --------------------------------------------------------
-
-    if media_type == "tv":
-
-        text = re.split(
-            r"\bS\d{1,2}(?:E\d{1,2})?\b",
-            text,
-            maxsplit=1,
-            flags=re.IGNORECASE,
-        )[0]
-
-        text = re.split(
-            r"\bSeason\s*\d{1,2}\b",
-            text,
-            maxsplit=1,
-            flags=re.IGNORECASE,
-        )[0]
-
-    # Bersihkan release info
-    text = remove_release_info(text)
-
-    # Bersihkan tanda kurung rusak
-    text = text.replace("(", " ")
-    text = text.replace(")", " ")
-    text = text.replace("[", " ")
-    text = text.replace("]", " ")
-
-    # Bersihkan apostrophe aneh
-    text = re.sub(
-        r"\s+",
-        " ",
-        text,
-    )
-
-    # Buang kata kosong di akhir
-    text = text.strip(
-        " -_."
-    )
-
-    return (
-        text,
-        year,
-        season,
-    )
+        title = text[:year_match.start()].strip()
+    else:
+        scene_junk = r"\b(1080p|720p|2160p|4k|bluray|webrip|web-dl|hdrip|x265|x264|hevc|10bit|aac|ddp\d?|galaxyrg\d*|yts|asimov|tgx)\b"
+        title = re.split(scene_junk, text, flags=re.IGNORECASE)[0]
+    
+    title = re.sub(r"[\(\[\{\)\]\}]", "", title).strip(" -_.")
+    return title, year
 
 
-# ============================================================
-# SEARCH TMDB
-# ============================================================
+def extract_season_number(text):
+    match = re.search(r"\bS(\d{1,2})\b|\bSeason\s*(\d{1,2})\b", text, re.IGNORECASE)
+    if match:
+        return int(match.group(1) or match.group(2))
+    return None
 
-def search_tmdb(title, year, media_type):
-    """
-    Cari media di TMDB.
-    """
 
-    endpoint = (
-        "/search/movie"
-        if media_type == "movie"
-        else "/search/tv"
-    )
+def clean_tv_title(raw_name):
+    text = normalize_name(raw_name)
+    text = re.split(r"\b(S\d{1,2}|Season\s*\d{1,2})\b", text, flags=re.IGNORECASE)[0]
+    text = re.sub(r"(?<!\d)(19\d{2}|20\d{2})(?!\d)", " ", text)
+    return text.strip(" -_.")
 
-    params = {
-        "query": title,
-        "include_adult": "false",
-    }
 
+def search_movie(title, year=None):
+    print(f"Mencari Movie '{title}' ({year or 'Tahun N/A'}) di TMDB...")
+    endpoint = "/search/movie"
+    params = {"query": title, "include_adult": "false"}
     if year:
+        params["year"] = year
 
-        if media_type == "movie":
+    res = tmdb_request(endpoint, params=params, language=PRIMARY_LANGUAGE)
+    if res and res.get("results"):
+        return res["results"][0]
 
-            params["year"] = year
-
-        else:
-
-            params[
-                "first_air_date_year"
-            ] = year
-
-    result = tmdb_request(
-        endpoint,
-        params=params,
-        language=LANGUAGE,
-    )
-
-    if not result:
-        return None
-
-    results = result.get(
-        "results",
-        [],
-    )
-
-    if results:
-
-        return results[0]
+    res = tmdb_request(endpoint, params=params, language=FALLBACK_LANGUAGE)
+    if res and res.get("results"):
+        return res["results"][0]
 
     return None
 
 
-# ============================================================
-# SEARCH WITH FALLBACK
-# ============================================================
+def search_tv_show(title):
+    print(f"Mencari TV Show '{title}' di TMDB...")
+    endpoint = "/search/tv"
 
-def search_media(title, year, media_type):
+    res = tmdb_request(endpoint, params={"query": title, "include_adult": "false"}, language=PRIMARY_LANGUAGE)
+    if res and res.get("results"):
+        return res["results"][0]
 
-    print("Mencari di TMDB...")
-
-    # Pertama dengan tahun
-    if year:
-
-        result = search_tmdb(
-            title,
-            year,
-            media_type,
-        )
-
-        if result:
-            return result
-
-        print(
-            "Pencarian dengan tahun gagal."
-        )
-
-    # Kedua tanpa tahun
-    print(
-        "Mencoba tanpa tahun..."
-    )
-
-    result = search_tmdb(
-        title,
-        None,
-        media_type,
-    )
-
-    if result:
-        return result
-
-    # Fallback bahasa Inggris
-    print(
-        "Mencoba metadata bahasa Inggris..."
-    )
-
-    endpoint = (
-        "/search/movie"
-        if media_type == "movie"
-        else "/search/tv"
-    )
-
-    params = {
-        "query": title,
-        "include_adult": "false",
-    }
-
-    result_data = tmdb_request(
-        endpoint,
-        params=params,
-        language=FALLBACK_LANGUAGE,
-    )
-
-    if result_data:
-
-        results = result_data.get(
-            "results",
-            [],
-        )
-
-        if results:
-            return results[0]
+    res = tmdb_request(endpoint, params={"query": title, "include_adult": "false"}, language=FALLBACK_LANGUAGE)
+    if res and res.get("results"):
+        return res["results"][0]
 
     return None
 
 
-# ============================================================
-# GET DETAILS
-# ============================================================
+def get_clearlogo(tmdb_id, is_movie=True, season_num=None):
+    if is_movie:
+        endpoint = f"/movie/{tmdb_id}/images"
+    else:
+        endpoint = f"/tv/{tmdb_id}/season/{season_num}/images" if season_num is not None else f"/tv/{tmdb_id}/images"
 
-def get_details(tmdb_id, media_type):
+    images = tmdb_request(endpoint)
 
-    endpoint = (
-        f"/movie/{tmdb_id}"
-        if media_type == "movie"
-        else f"/tv/{tmdb_id}"
-    )
+    if not is_movie and (not images or "logos" not in images or not images["logos"]) and season_num is not None:
+        images = tmdb_request(f"/tv/{tmdb_id}/images")
 
-    return tmdb_request(
-        endpoint,
-        params={},
-        language=LANGUAGE,
-    )
-
-
-# ============================================================
-# GET FALLBACK DETAILS
-# ============================================================
-
-def get_details_fallback(
-    tmdb_id,
-    media_type,
-):
-
-    endpoint = (
-        f"/movie/{tmdb_id}"
-        if media_type == "movie"
-        else f"/tv/{tmdb_id}"
-    )
-
-    return tmdb_request(
-        endpoint,
-        params={},
-        language=FALLBACK_LANGUAGE,
-    )
-
-
-# ============================================================
-# GET LOGO
-# ============================================================
-
-def get_clearlogo(
-    tmdb_id,
-    media_type,
-):
-
-    endpoint = (
-        f"/movie/{tmdb_id}/images"
-        if media_type == "movie"
-        else f"/tv/{tmdb_id}/images"
-    )
-
-    images = tmdb_request(
-        endpoint,
-        params={},
-        language=None,
-    )
-
-    if not images:
+    if not images or "logos" not in images or not images["logos"]:
         return None
 
-    logos = images.get(
-        "logos",
-        [],
-    )
-
+    logos = [l for l in images["logos"] if not l.get("file_path", "").lower().endswith(".svg")]
     if not logos:
         return None
 
-    # Prioritas Indonesia
-    preferred_languages = [
+    for lang in ["id", "en", None]:
+        matching = [l for l in logos if l.get("iso_639_1") == lang]
+        if matching:
+            matching.sort(key=lambda x: x.get("width", 0), reverse=True)
+            return matching[0].get("file_path")
 
-        "id",
-        "en",
-        None,
-    ]
-
-    for language in preferred_languages:
-
-        for logo in logos:
-
-            if (
-                logo.get("iso_639_1")
-                == language
-            ):
-
-                file_path = logo.get(
-                    "file_path"
-                )
-
-                if file_path:
-                    return file_path
-
-    # Kalau tidak ada, ambil logo pertama
-    return logos[0].get(
-        "file_path"
-    )
+    logos.sort(key=lambda x: x.get("width", 0), reverse=True)
+    return logos[0].get("file_path")
 
 
 # ============================================================
-# BUILD METADATA
+# MODULE 1: SCAN MOVIES
 # ============================================================
 
-def build_metadata(
-    details,
-    media_type,
-    detected_year,
-    detected_season,
-):
-
-    if media_type == "movie":
-
-        title = (
-            details.get("title")
-            or details.get(
-                "original_title"
-            )
-            or "Unknown"
-        )
-
-        release_date = (
-            details.get(
-                "release_date"
-            )
-            or ""
-        )
-
-    else:
-
-        title = (
-            details.get("name")
-            or details.get(
-                "original_name"
-            )
-            or "Unknown"
-        )
-
-        release_date = (
-            details.get(
-                "first_air_date"
-            )
-            or ""
-        )
-
-    year = detected_year
-
-    if not year and release_date:
-
-        match = re.match(
-            r"(\d{4})",
-            release_date,
-        )
-
-        if match:
-
-            year = match.group(1)
-
-    genres = []
-
-    for genre in details.get(
-        "genres",
-        [],
-    ):
-
-        name = genre.get(
-            "name"
-        )
-
-        if name:
-
-            genres.append(name)
-
-    metadata = {
-
-        "tmdb_id":
-            details.get("id"),
-
-        "media_type":
-            media_type,
-
-        "title":
-            title,
-
-        "original_title":
-            (
-                details.get(
-                    "original_title"
-                )
-                if media_type == "movie"
-                else details.get(
-                    "original_name"
-                )
-            ),
-
-        "year":
-            year or "",
-
-        "release_date":
-            release_date,
-
-        "vote_average":
-            details.get(
-                "vote_average",
-                0,
-            ),
-
-        "vote_count":
-            details.get(
-                "vote_count",
-                0,
-            ),
-
-        "genres":
-            genres,
-
-        "overview":
-            details.get(
-                "overview",
-                ""
-            ),
-
-        "tagline":
-            details.get(
-                "tagline",
-                ""
-            ),
-
-        "poster_path":
-            details.get(
-                "poster_path"
-            ),
-
-        "backdrop_path":
-            details.get(
-                "backdrop_path"
-            ),
-
-        "season":
-            detected_season,
-
-        "number_of_seasons":
-            (
-                details.get(
-                    "number_of_seasons"
-                )
-                if media_type == "tv"
-                else None
-            ),
-
-        "number_of_episodes":
-            (
-                details.get(
-                    "number_of_episodes"
-                )
-                if media_type == "tv"
-                else None
-            ),
-
-    }
-
-    return metadata
-
-
-# ============================================================
-# WRITE METADATA
-# ============================================================
-
-def write_metadata(
-    folder,
-    metadata,
-):
-
-    path = (
-        folder
-        / "metadata.json"
-    )
-
-    try:
-
-        with open(
-            path,
-            "w",
-            encoding="utf-8",
-        ) as output:
-
-            json.dump(
-                metadata,
-                output,
-                ensure_ascii=False,
-                indent=4,
-            )
-
-        return True
-
-    except Exception as error:
-
-        print_error(
-            f"Gagal menulis metadata.json: {error}"
-        )
-
-        return False
-
-
-# ============================================================
-# PROCESS FOLDER
-# ============================================================
-
-def process_folder(
-    folder,
-    media_type,
-):
-
+def process_movie_folder(movie_folder):
     line()
+    print(f"Processing Movie Folder: {movie_folder.name}")
 
-    print(
-        f"Folder : {folder.name}"
-    )
+    meta_file = movie_folder / "metadata.json"
+    poster_file = movie_folder / "poster.jpg"
+    logo_file = movie_folder / "clearlogo.png"
 
-    metadata_file = (
-        folder
-        / "metadata.json"
-    )
-
-    if (
-        SKIP_EXISTING
-        and metadata_file.exists()
-        and not FORCE_RESCAN
-    ):
-
-        print(
-            "Status : metadata.json sudah ada, dilewati."
-        )
-
+    if SKIP_EXISTING and meta_file.exists() and poster_file.exists() and logo_file.exists() and not FORCE_RESCAN:
+        print("  Status: Semua metadata & gambar sudah lengkap, dilewati.")
         return
 
-    # --------------------------------------------------------
-    # Cari video
-    # --------------------------------------------------------
-
-    video = find_video(folder)
-
-    if video:
-
-        print(
-            f"Video  : {video.name}"
-        )
-
-        raw_name = video.stem
-
-    else:
-
-        print(
-            "Video  : tidak ditemukan"
-        )
-
-        # Tetap gunakan nama folder
-        raw_name = folder.name
-
-    # --------------------------------------------------------
-    # Parse title
-    # --------------------------------------------------------
-
-    title, year, season = extract_title(
-        raw_name,
-        media_type,
-    )
-
-    # Jika hasil dari nama video jelek,
-    # coba nama folder
-    folder_title, folder_year, folder_season = (
-        extract_title(
-            folder.name,
-            media_type,
-        )
-    )
-
-    if (
-        len(folder_title)
-        > 0
-        and (
-            len(folder_title)
-            < len(title)
-            or not title
-        )
-    ):
-
-        title = folder_title
-
-    if not year:
-        year = folder_year
-
-    if not season:
-        season = folder_season
-
-    print(
-        f"Judul  : {title or '-'}"
-    )
-
-    print(
-        f"Tahun  : {year or '-'}"
-    )
-
-    if media_type == "tv":
-
-        print(
-            f"Season : "
-            f"{season if season else '-'}"
-        )
-
-    if not title:
-
-        print_error(
-            "Judul tidak dapat dikenali."
-        )
-
-        return
-
-    # --------------------------------------------------------
-    # Search TMDB
-    # --------------------------------------------------------
-
-    search_result = search_media(
-        title,
-        year,
-        media_type,
-    )
+    clean_title, year = extract_movie_info(movie_folder.name)
+    search_result = search_movie(clean_title, year)
 
     if not search_result:
-
-        print(
-            "Media tidak ditemukan."
-        )
-
+        print_error(f"  Movie '{clean_title}' tidak ditemukan di TMDB.")
         return
 
-    tmdb_id = search_result.get(
-        "id"
-    )
-
-    if not tmdb_id:
-
-        print(
-            "TMDB ID tidak ditemukan."
-        )
-
-        return
-
-    print(
-        f"TMDB ID : {tmdb_id}"
-    )
-
-    # --------------------------------------------------------
-    # Get details Indonesia
-    # --------------------------------------------------------
-
-    details = get_details(
-        tmdb_id,
-        media_type,
-    )
-
-    # --------------------------------------------------------
-    # Fallback English
-    # --------------------------------------------------------
+    tmdb_id = search_result.get("id")
+    details = fetch_details_with_id_synopsis(f"/movie/{tmdb_id}")
 
     if not details:
-
-        print(
-            "Metadata Indonesia gagal, "
-            "mencoba English..."
-        )
-
-        details = get_details_fallback(
-            tmdb_id,
-            media_type,
-        )
-
-    if not details:
-
-        print(
-            "Gagal mengambil detail media."
-        )
-
+        print_error(f"  Gagal mengambil detail Movie ID {tmdb_id}")
         return
 
-    # --------------------------------------------------------
-    # Jika overview Indonesia kosong,
-    # ambil overview English
-    # --------------------------------------------------------
+    genres = [g.get("name") for g in details.get("genres", [])]
 
-    if not details.get("overview"):
+    if not (SKIP_EXISTING and meta_file.exists() and not FORCE_RESCAN):
+        metadata = {
+            "tmdb_id": tmdb_id,
+            "media_type": "movie",
+            "title": details.get("title") or clean_title,
+            "original_title": details.get("original_title"),
+            "year": details.get("release_date", "")[:4] if details.get("release_date") else year,
+            "release_date": details.get("release_date"),
+            "vote_average": details.get("vote_average", 0),
+            "genres": genres,
+            "overview": details.get("overview", ""),
+            "runtime": details.get("runtime"),
+        }
+        with open(meta_file, "w", encoding="utf-8") as f:
+            json.dump(metadata, f, ensure_ascii=False, indent=4)
+        print("  metadata.json dibuat.")
 
-        fallback_details = (
-            get_details_fallback(
-                tmdb_id,
-                media_type,
-            )
-        )
+    if details.get("poster_path") and not (SKIP_EXISTING and poster_file.exists() and not FORCE_RESCAN):
+        poster_url = f"https://image.tmdb.org/t/p/{POSTER_SIZE}{details['poster_path']}"
+        download_file(poster_url, poster_file)
 
-        if (
-            fallback_details
-            and fallback_details.get(
-                "overview"
-            )
-        ):
-
-            details["overview"] = (
-                fallback_details[
-                    "overview"
-                ]
-            )
-
-    # --------------------------------------------------------
-    # Build metadata
-    # --------------------------------------------------------
-
-    metadata = build_metadata(
-        details,
-        media_type,
-        year,
-        season,
-    )
-
-    if write_metadata(
-        folder,
-        metadata,
-    ):
-
-        print(
-            "metadata.json dibuat."
-        )
-
-    # --------------------------------------------------------
-    # Download poster
-    # --------------------------------------------------------
-
-    poster_path = (
-        details.get(
-            "poster_path"
-        )
-    )
-
-    if poster_path:
-
-        poster_url = (
-            "https://image.tmdb.org/t/p/"
-            f"{POSTER_SIZE}"
-            f"{poster_path}"
-        )
-
-        poster_file = (
-            folder
-            / "poster.jpg"
-        )
-
-        print(
-            "Download poster..."
-        )
-
-        if download_file(
-            poster_url,
-            poster_file,
-        ):
-
-            print(
-                "poster.jpg berhasil dibuat."
-            )
-
-    else:
-
-        print_warning(
-            "Poster tidak tersedia."
-        )
-
-    # --------------------------------------------------------
-    # Download clearlogo
-    # --------------------------------------------------------
-
-    print(
-        "Mencari clear logo..."
-    )
-
-    logo_path = get_clearlogo(
-        tmdb_id,
-        media_type,
-    )
-
-    if logo_path:
-
-        logo_url = (
-            "https://image.tmdb.org/t/p/"
-            f"{LOGO_SIZE}"
-            f"{logo_path}"
-        )
-
-        logo_file = (
-            folder
-            / "clearlogo.png"
-        )
-
-        if download_file(
-            logo_url,
-            logo_file,
-        ):
-
-            print(
-                "clearlogo.png berhasil dibuat."
-            )
-
-    else:
-
-        print_warning(
-            "Clear logo tidak tersedia."
-        )
-
-    print(
-        f"SELESAI: "
-        f"{metadata['title']}"
-    )
+    if not (SKIP_EXISTING and logo_file.exists() and not FORCE_RESCAN):
+        logo_path = get_clearlogo(tmdb_id, is_movie=True)
+        if logo_path:
+            logo_url = f"https://image.tmdb.org/t/p/{LOGO_SIZE}{logo_path}"
+            if download_file(logo_url, logo_file):
+                process_clearlogo(logo_file)
 
 
-# ============================================================
-# SCAN DIRECTORY
-# ============================================================
-
-def scan_directory(
-    root,
-    media_type,
-):
-
+def scan_movies(root_dir):
+    line()
+    print("SCANNING MOVIES DIRECTORY:", root_dir)
     line()
 
-    if media_type == "movie":
-
-        print(
-            "SCAN MOVIES"
-        )
-
-    else:
-
-        print(
-            "SCAN TV SERIES"
-        )
-
-    print(root)
-
-    line()
-
-    if not root.exists():
-
-        print_error(
-            f"Folder tidak ditemukan: {root}"
-        )
-
+    if not root_dir.exists():
+        print_error(f"Direktori MOVIES tidak ditemukan: {root_dir}")
         return
 
-    folders = sorted(
-        [
-            path
-            for path in root.iterdir()
-            if path.is_dir()
-        ],
-        key=lambda path:
-            path.name.lower(),
-    )
-
-    print(
-        f"Ditemukan {len(folders)} folder."
-    )
-
-    for folder in folders:
-
-        process_folder(
-            folder,
-            media_type,
-        )
+    for path in sorted(root_dir.iterdir()):
+        if path.is_dir():
+            process_movie_folder(path)
 
 
 # ============================================================
-# MAIN
+# MODULE 2: SCAN TV SERIES
+# ============================================================
+
+def process_tv_season(season_folder, tmdb_id, season_num, main_title, show_genres, main_overview=""):
+    print(f"  └── Processing Season Folder: {season_folder.name} (Season {season_num})")
+
+    season_meta_file = season_folder / "season_metadata.json"
+    poster_file = season_folder / "poster.jpg"
+    logo_file = season_folder / "clearlogo.png"
+
+    if SKIP_EXISTING and season_meta_file.exists() and poster_file.exists() and logo_file.exists() and not FORCE_RESCAN:
+        print("      Status: Metadata & Gambar Season sudah lengkap, dilewati.")
+        return
+
+    endpoint = f"/tv/{tmdb_id}/season/{season_num}"
+    season_details = fetch_details_with_id_synopsis(endpoint)
+
+    if not season_details:
+        print_warning(f"      Gagal mengambil detail untuk Season {season_num}")
+        return
+
+    season_name_tmdb = season_details.get("name") or f"Season {season_num}"
+
+    overview = season_details.get("overview", "").strip()
+    if not overview:
+        overview = main_overview
+
+    if not (SKIP_EXISTING and season_meta_file.exists() and not FORCE_RESCAN):
+        metadata = {
+            "tmdb_id": tmdb_id,
+            "show_title": main_title,
+            "season_number": season_num,
+            "season_name": season_name_tmdb,
+            "title": main_title,
+            "genres": show_genres,
+            "overview": overview,
+            "air_date": season_details.get("air_date", ""),
+            "poster_path": season_details.get("poster_path"),
+            "episodes_count": len(season_details.get("episodes", [])),
+        }
+        with open(season_meta_file, "w", encoding="utf-8") as f:
+            json.dump(metadata, f, ensure_ascii=False, indent=4)
+        print("      season_metadata.json dibuat.")
+
+    poster_path = season_details.get("poster_path")
+    if poster_path and not (SKIP_EXISTING and poster_file.exists() and not FORCE_RESCAN):
+        poster_url = f"https://image.tmdb.org/t/p/{POSTER_SIZE}{poster_path}"
+        download_file(poster_url, poster_file)
+
+    if not (SKIP_EXISTING and logo_file.exists() and not FORCE_RESCAN):
+        logo_path = get_clearlogo(tmdb_id, is_movie=False, season_num=season_num)
+        if logo_path:
+            logo_url = f"https://image.tmdb.org/t/p/{LOGO_SIZE}{logo_path}"
+            if download_file(logo_url, logo_file):
+                process_clearlogo(logo_file)
+
+
+def scan_tv_series(root_dir):
+    line()
+    print("SCANNING TV SERIES RECURSIVELY:", root_dir)
+    line()
+
+    if not root_dir.exists():
+        print_error(f"Direktori TV SERIES tidak ditemukan: {root_dir}")
+        return
+
+    tmdb_cache = {}
+
+    for path in sorted(root_dir.iterdir()):
+        if not path.is_dir():
+            continue
+
+        clean_title = clean_tv_title(path.name)
+        season_num_direct = extract_season_number(path.name)
+
+        if not clean_title:
+            continue
+
+        if clean_title not in tmdb_cache:
+            search_result = search_tv_show(clean_title)
+            if not search_result:
+                print_error(f"Serial '{clean_title}' tidak ditemukan di TMDB.")
+                continue
+
+            tmdb_id = search_result.get("id")
+            details = fetch_details_with_id_synopsis(f"/tv/{tmdb_id}")
+
+            main_title = clean_title
+            show_genres = []
+            main_overview = ""
+
+            if details:
+                main_title = details.get("name") or clean_title
+                show_genres = [g.get("name") for g in details.get("genres", [])]
+                main_overview = details.get("overview", "").strip()
+
+            tmdb_cache[clean_title] = {
+                "tmdb_id": tmdb_id,
+                "main_title": main_title,
+                "genres": show_genres,
+                "main_overview": main_overview,
+                "details": details
+            }
+        
+        show_info = tmdb_cache[clean_title]
+
+        if season_num_direct is not None:
+            line()
+            print(f"Folder Season Langsung: {path.name}")
+            process_tv_season(
+                path, 
+                show_info["tmdb_id"], 
+                season_num_direct, 
+                show_info["main_title"], 
+                show_info["genres"],
+                show_info["main_overview"]
+            )
+        else:
+            line()
+            print(f"Folder Induk Serial: {path.name}")
+            main_meta_file = path / "metadata.json"
+            main_poster = path / "poster.jpg"
+            main_logo = path / "clearlogo.png"
+
+            if show_info["details"]:
+                if not (SKIP_EXISTING and main_meta_file.exists() and not FORCE_RESCAN):
+                    main_metadata = {
+                        "tmdb_id": show_info["tmdb_id"],
+                        "media_type": "tv",
+                        "title": show_info["main_title"],
+                        "original_title": show_info["details"].get("original_name"),
+                        "first_air_date": show_info["details"].get("first_air_date"),
+                        "vote_average": show_info["details"].get("vote_average", 0),
+                        "genres": show_info["genres"],
+                        "overview": show_info["main_overview"],
+                    }
+                    with open(main_meta_file, "w", encoding="utf-8") as f:
+                        json.dump(main_metadata, f, ensure_ascii=False, indent=4)
+
+                if show_info["details"].get("poster_path") and not (SKIP_EXISTING and main_poster.exists() and not FORCE_RESCAN):
+                    download_file(f"https://image.tmdb.org/t/p/{POSTER_SIZE}{show_info['details']['poster_path']}", main_poster)
+
+                if not (SKIP_EXISTING and main_logo.exists() and not FORCE_RESCAN):
+                    logo_path = get_clearlogo(show_info["tmdb_id"], is_movie=False)
+                    if logo_path:
+                        if download_file(f"https://image.tmdb.org/t/p/{LOGO_SIZE}{logo_path}", main_logo):
+                            process_clearlogo(main_logo)
+
+            for subfolder in path.iterdir():
+                if subfolder.is_dir():
+                    s_num = extract_season_number(subfolder.name)
+                    if s_num is not None:
+                        process_tv_season(
+                            subfolder, 
+                            show_info["tmdb_id"], 
+                            s_num, 
+                            show_info["main_title"], 
+                            show_info["genres"],
+                            show_info["main_overview"]
+                        )
+
+
+# ============================================================
+# MAIN SCANNER
 # ============================================================
 
 def main():
-
+    line()
+    print("             MEDIA LIBRARY SCANNER (CLEAN LOG RUN)")
     line()
 
-    print(
-        "             MOVIE LIBRARY SCANNER"
-    )
-
-    line()
-
-    print()
-
-    print(
-        f"FILM : {MOVIES_DIR}"
-    )
-
-    print(
-        f"TV   : {TV_DIR}"
-    )
-
-    print()
-
-    # Cek autentikasi
-    if (
-        not TMDB_READ_TOKEN
-        and not TMDB_API_KEY
-    ):
-
-        print_error(
-            "TMDB_TOKEN atau TMDB_API_KEY belum diatur."
-        )
-
-        print()
-
-        print(
-            "Contoh menggunakan Read Access Token:"
-        )
-
-        print()
-
-        print(
-            "export TMDB_TOKEN='TOKEN_KAMU'"
-        )
-
+    if not TMDB_READ_TOKEN and not TMDB_API_KEY:
+        print_error("TMDB_TOKEN atau TMDB_API_KEY belum diatur di sistem Anda.")
         return
 
-    # Scan movies
-    scan_directory(
-        MOVIES_DIR,
-        "movie",
-    )
-
-    # Scan TV
-    scan_directory(
-        TV_DIR,
-        "tv",
-    )
-
-    print()
+    scan_movies(MOVIES_DIR)
+    scan_tv_series(TV_DIR)
 
     line()
-
-    print(
-        "SCAN SELESAI"
-    )
-
+    print("PROSES SCAN SELESAI!")
     line()
 
-
-# ============================================================
-# START
-# ============================================================
 
 if __name__ == "__main__":
-
     main()
