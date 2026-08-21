@@ -1,35 +1,176 @@
+# Kodi-Like (Media Library Scanner & MPV OSD Overlay)
 
-Mirip-Kodi (Media Library Scanner & MPV OSD Overlay)This project is an integrated, Kodi-style automated media library system consisting of two main components:scan_movies: A Python-based automated script to scan movie/TV series directories and download metadata and images from TMDB.  movie-info.lua: A Lua script for the MPV video player that reads scanned metadata and displays it as an interactive OSD interface (posters, synopses, genres, and a digital clock).  Key FeaturesAutomated Scanning: Recursively reads Movie and TV Series folders.  TMDB Integration: Automatically downloads media information and synopses in Indonesian (id-ID).  Asset Optimization: Downloads movie posters and compresses/sharpens clear logos (clearlogo.png) using Pillow.  Kodi-Style MPV Interface: Displays overlay posters, ratings, genre lists, cleanly wrapped synopses, a real-time clock, and an estimated movie completion time.  Smart Visibility: Information automatically appears when paused or on mouse movement, and auto-hides during playback.  System RequirementsBefore starting the installation, make sure your Linux system meets the following requirements:Operating System: Linux / Unix-based (The script reads external media directory paths like /run/media/...).  Python: Version 3.x or newer.  Media Player: MPV Player installed on your system.  System Utilities: ffmpeg and ffprobe (Standard on Linux; required by the MPV script for image processing).  Python DependenciesThe scanner script requires the third-party Pillow library to process images. Install it via your terminal:  Bashpip install Pillow
-Environment Configuration (.bashrc)This script requires TMDB API authentication to function. It is recommended to use a TMDB Read Access Token (v4 auth) added to your .bashrc file.  How to Get a Free TMDB Token:Go to the official The Movie Database (TMDB) website and log into your account.  Click your profile icon in the top right corner and select Settings.  On the left sidebar, click the API tab.  Click the Create link under the "Request an API Key" section and select Developer.  Fill out the application details (you can set the application name to Mirip-Kodi and the URL to your GitHub repository).  After accepting the terms, locate the API Read Access Token (v4 auth) section (a long string of characters) and copy the entire token.  Exporting the Token to Your System:Run the following commands in your terminal to save the token into your Linux environment configuration:Bash# Add TMDB Token to .bashrc
+This project is an integrated Kodi-style media library automation system consisting of two main components:
+
+1. **`scan_movies`**: An automated Python-based script to scan movie/TV series directories and download metadata and images from TMDB.
+2. **`movie-info.lua`**: A Lua script for the MPV video player that reads the scanned metadata and displays it as an interactive info interface (poster, synopsis, genres, and a digital clock).
+
+## Key Features
+
+* **Automated Scanning**: Recursively reads Movie and TV Series folders.
+* **TMDB Integration**: Automatically downloads information and synopses in Indonesian (`id-ID`).
+* **Asset Cleaner**: Downloads movie posters as well as compresses and sharpens clear logos (`clearlogo.png`) using Pillow.
+* **Kodi-Style MPV Interface**: Displays an overlay featuring posters, ratings, genre lists, cleanly wrapped synopses, a real-time clock, and estimated completion time.
+* **Smart Visibility**: Information automatically appears when a video is paused or the mouse cursor moves, and automatically hides when playback resumes.
+
+## System Requirements
+
+Before starting the installation, ensure your Linux system meets the following requirements:
+
+* **Operating System**: Linux / Unix-based (The script reads external media directory paths like `/run/media/...`).
+* **Python**: Version 3.x or latest.
+* **Player Application**: [MPV Player](https://mpv.io) installed on your system.
+* **Supporting Tools**: `ffmpeg` and `ffprobe` (Default in Linux systems; required by the MPV script to process images).
+
+### Python Dependencies
+
+The scanner script requires the third-party **Pillow** library for image processing. Install it via terminal:
+
+```bash
+pip install Pillow
+
+```
+
+## Environment Configuration (.bashrc)
+
+This script requires TMDB API authentication to function. It is recommended to use a **TMDB Read Access Token (v4 auth)** added to your `.bashrc` file.
+
+### How to Get a Free TMDB Token:
+
+1. Open the official [The Movie Database (TMDB)](https://themoviedb.org) site and log in.
+2. Click your profile icon in the top right corner and select **Settings**.
+3. In the left menu, click the **API** tab.
+4. Click the **Create** link under the "Request an API Key" section, then choose the **Developer** application type.
+5. Fill out the application information form (you can set the project name to `Mirip-Kodi` and the URL to your GitHub repository).
+6. After accepting the terms, find the **API Read Access Token (v4 auth)** section containing a long text code and copy it.
+
+### Adding the Token to Your System:
+
+Run the following commands in your terminal to automatically append the token to your Linux environment configuration:
+
+```bash
+# Add TMDB Token to .bashrc
 echo 'export TMDB_TOKEN="your_v4_read_access_token_here"' >> ~/.bashrc
 
-# Reload terminal configuration to apply changes immediately
+# Reload terminal configuration for immediate effect
 source ~/.bashrc
-Note: Replace "your_v4_read_access_token_here" with the actual v4 token copied from your TMDB dashboard before executing the command.  Installation StepsFollow these terminal commands to install the global scanner and MPV script side-by-side:1. Clone the RepositoryBashgit clone https://github.com/thecimot/Mirip-Kodi
+
+```
+
+*Note: Make sure to replace `"your_v4_read_access_token_here"` with the long token code you copied from the TMDB dashboard before pressing Enter.*
+
+## Component Installation Steps
+
+Follow these installation steps in your terminal to set up the global scanner and MPV player side by side:
+
+### 1. Clone the Repository
+
+```bash
+git clone https://github.com/thecimot/Mirip-Kodi
 cd Mirip-Kodi
-2. Install the Scanner Script (scan_movies) System-WideTo execute the script globally from anywhere in your terminal without typing the .py extension:Bash# Create local bin folder if it does not exist
+
+```
+
+### 2. Install Media Scanner (`scan_movies`) Globally
+
+To execute the script directly from anywhere in the terminal without typing the `.py` extension:
+
+```bash
+# Create local bin directory if it doesn't exist
 mkdir -p ~/.local/bin
 
 # Copy the main scanner file
 cp scan_movies ~/.local/bin/
 
-# Grant execution permissions
+# Grant executable permission to the file
 chmod +x ~/.local/bin/scan_movies
-Ensure ~/.local/bin is added to your system's $PATH variable in .bashrc.3. Customizing Configuration (scan_movies)You can customize media directory paths and language settings directly within the scan_movies script. Open the file in a text editor like Nano:  Bashnano ~/.local/bin/scan_movies
-Locate the configuration section near the top of the file and adjust the parameters:a. Specify Media DirectoriesUpdate the paths inside Path("...") to match your local or external media storage paths:Python# ============================================================
+
+```
+
+*Ensure that `~/.local/bin` is added to your system `$PATH` variable inside `.bashrc`.*
+
+## 3. Customize Script Settings (`scan_movies`)
+
+You can customize media target folders and the primary search language directly inside the `scan_movies` script. Open the file with your editor of choice (e.g., Nano):
+
+```bash
+nano ~/.local/bin/scan_movies
+
+```
+
+Find the configuration code block near the top of the file and adjust the parameters:
+
+### a. Setting Target Media Folders
+
+Modify the paths inside `Path("...")` to match your Movie and TV Series folder locations on your hard drive/external storage:
+
+```python
+# ============================================================
 # DIRECTORY CONFIGURATION
 # ============================================================
 
 MOVIES_DIR = Path("/run/media/cimot/cimot/MOVIES")
 TV_DIR = Path("/run/media/cimot/cimot/TV SERIES")
-b. Set Language PreferencesBy default, the script prioritizes Indonesian metadata with an English fallback if missing. You can modify these ISO 639-1 language codes as needed:  PythonPRIMARY_LANGUAGE = "id-ID"      # Primary metadata language (Indonesian)
-FALLBACK_LANGUAGE = "en-US"     # Fallback language if primary is missing
-Save changes by pressing Ctrl + O, hit Enter, and exit Nano with Ctrl + X.4. Install MPV Interface (movie-info.lua)Copy the Lua script directly into your MPV scripts directory:Bash# Create MPV scripts directory if it does not exist
+
+```
+
+### b. Changing Language Preferences
+
+By default, the script prioritizes Indonesian synopses. If metadata is unavailable, it automatically falls back to English. You can change the standard ISO 639-1 language code if needed:
+
+```python
+PRIMARY_LANGUAGE = "id-ID"      # Primary metadata search language (Indonesian)
+FALLBACK_LANGUAGE = "en-US"     # Fallback language if primary is missing (English)
+
+```
+
+After making edits, save changes by pressing `Ctrl + O`, hit `Enter`, and press `Ctrl + X` to exit Nano.
+
+### 4. Install MPV Interface (`movie-info.lua`)
+
+Copy the Lua script directly into MPV's default configuration directory:
+
+```bash
+# Create MPV scripts directory if it doesn't exist
 mkdir -p ~/.config/mpv/scripts
 
-# Copy OSD script
+# Copy the OSD interface script
 cp movie-info.lua ~/.config/mpv/scripts/
-UsageScanning Media FilesRun the global command in your terminal to automatically process images and JSON metadata:Bashscan_movies
-Viewing Metadata in MPVPlay a video file using MPV. The mini-OSD will display automatically on mouse movement or pause. To toggle the full panel (Poster and Synopsis), use these shortcuts:  = Key (Equal Sign)  Right-Click inside the MPV player window  Screenshotsa. Clear logo, genres, and digital clock display upon mouse movement and auto-hide after 10 seconds (default).
-  b. Poster, rating, and synopsis toggle on Right-Click and hide upon second Right-Click.
-  Sample Folder IncludedThe repository contains a sample movie folder with pre-generated metadata and posters to verify that movie-info.lua functions correctly inside MPV.  HAPPY WATCHING!LicenseDistributed under the MIT License. See code headers for copyright details by Hartono (2026).  
+
+```
+
+## 5. Usage Instructions
+
+### Scanning Media Files
+
+Open your terminal and run the following global command to automatically update all image assets and JSON metadata:
+
+```bash
+scan_movies
+
+```
+
+### 6. Displaying Info in MPV
+
+Play your movie or TV series using MPV. The smart info interface appears automatically when moving the mouse or pausing playback. To bring up the full info panel (Poster and Synopsis), press:
+
+* **`=`** (Equal sign) key
+* **Right-Click** inside the MPV window
+
+### 7. Screenshots
+
+a. Clear Logo, Genre, and Clock appear when the mouse moves and fade out automatically. Default duration = 10 seconds.
+
+
+b. Poster, Rating, and Synopsis appear on Right-Click and toggle off with a second Right-Click.
+
+
+### 8. Example Media Folder Included
+
+The repository includes an example movie folder complete with metadata and posters so you can test if `movie-info.lua` works with your MPV Player right away.
+
+### HAPPY WATCHING!!
+
+## License
+
+This project is licensed under the **MIT License** - See the code files for copyright details by Hartono (2026).
