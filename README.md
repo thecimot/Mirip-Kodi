@@ -39,6 +39,31 @@ Skrip ini memerlukan library pihak ketiga **Pillow** untuk memproses gambar. Ins
 ```bash
 pip install Pillow
 ```
+## Konfigurasi Lingkungan (.bashrc)
+
+Skrip ini memerlukan otentikasi ke API TMDB agar dapat berfungsi. Disarankan menggunakan **TMDB Read Access Token (v4 auth)** yang dimasukkan ke dalam file `.bashrc` Anda.
+
+### Cara Mendapatkan Token TMDB (Gratis):
+1. Buka situs resmi [The Movie Database (TMDB)](https://themoviedb.org) dan masuk ke akun Anda (buat akun baru jika belum punya).
+2. Klik ikon profil Anda di pojok kanan atas, lalu pilih **Settings**.
+3. Pada menu sebelah kiri, klik tab **API**.
+4. Klik tautan **Create** di bawah bagian "Request an API Key", lalu pilih jenis aplikasi **Developer**.
+5. Isi formulir informasi aplikasi yang diminta (Anda bisa mengisi nama proyek dengan `Mirip-Kodi` dan URL dengan tautan GitHub Anda).
+6. Setelah menyetujui persyaratan, API Key Anda akan langsung dibuat.
+7. Cari bagian **API Read Access Token (v4 auth)** yang berupa teks kode sangat panjang, lalu salin (copy) seluruh kode tersebut.
+
+### Memasukkan Token ke Sistem:
+Jalankan perintah berikut di terminal untuk memasukkan token Anda secara otomatis ke dalam konfigurasi sistem Linux:
+
+```bash
+# Tambahkan Token TMDB ke .bashrc
+echo 'export TMDB_TOKEN="isi_read_access_token_v4_anda_di_sini"' >> ~/.bashrc
+
+# Muat ulang konfigurasi terminal agar langsung aktif
+source ~/.bashrc
+```
+
+*Catatan: Pastikan Anda mengganti `"isi_read_access_token_v4_anda_di_sini"` dengan kode token panjang yang sudah Anda salin dari dasbor TMDB sebelum menekan Enter.*
 
 ## Konfigurasi Lingkungan (.bashrc)
 
