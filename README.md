@@ -72,7 +72,7 @@ Agar skrip dapat dipanggil langsung dari mana saja di terminal tanpa mengetik ek
 
 1. **Clone Repositori ini:**
    ```bash
-   git clone https://github.com
+   git clone https://github.com/thecimot/Mirip-Kodi
    cd Mirip-Kodi
    ```
 
