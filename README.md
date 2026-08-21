@@ -139,6 +139,7 @@ b. Poster Rating dan Sinopsis akan muncul saat Right Clik (Klik Kanan Pada Mouse
 
 ### 8. Terdapat Folder Contoh Film Beserta Metatada,Poster,dll jika anda clone repositori inI. Untuk mengecek apakah plugin movie-info.lua bekerja di Player MPV.
 
+### SELAMAT MENONTON!!
 ## Lisensi
 
 Proyek ini dilisensikan di bawah **MIT License** - Lihat isi file kode untuk detail hak cipta oleh Hartono (2026).
