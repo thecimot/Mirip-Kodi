@@ -137,7 +137,7 @@ a. Clear Logo, Genre dan Jam akan muncul saat Mouse Bergerak dan akan menghilang
 b. Poster Rating dan Sinopsis akan muncul saat Right Clik (Klik Kanan Pada Mouse) dan akan hilang jika Klik Kanan Kedua Kalinya.
 ![Spring Poster](Screenshoot/Spring_Poster.png)
 
-### 8. Terdapat Folder Contoh Film Beserta Metatada,Poster,dll jika anda clone repositori ini
+### 8. Terdapat Folder Contoh Film Beserta Metatada,Poster,dll jika anda clone repositori ini untuk mengecek apakah plugind movie-info.lua bekerja di Player MPV.
 
 ## Lisensi
 
