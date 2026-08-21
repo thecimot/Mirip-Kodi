@@ -131,10 +131,10 @@ Putar video film atau serial TV Anda menggunakan MPV. Antarmuka informasi pintar
 * Klik **Tombol Kanan Tetikus (Right-Click)** di jendela pemutar MPV [2]
 
 ### 7. Screenshoot
-Clear Logo, Genre dan Jam akan muncul saat Mouse Bergerak dan akan menghilang dengan sendirinya. Default 10 detik.
+a. Clear Logo, Genre dan Jam akan muncul saat Mouse Bergerak dan akan menghilang dengan sendirinya. Default 10 detik.
 ![Spring Clear Logo](Screenshoot/Spring_Clear_Logo.png)
 
-Poster Rating dan Sinopsis akan muncul saat Right Clik (Klik Kanan Pada Mouse) dan akan hilang jika Klik Kanan Kedua Kalinya.
+b. Poster Rating dan Sinopsis akan muncul saat Right Clik (Klik Kanan Pada Mouse) dan akan hilang jika Klik Kanan Kedua Kalinya.
 ![Spring Poster](Screenshoot/Spring_Poster.png)
 
 
