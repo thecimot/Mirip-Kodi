@@ -10,7 +10,7 @@ Proyek ini adalah sistem otomasi pustaka media terintegrasi bergaya Kodi yang te
 * **Integrasi TMDB**: Mengunduh informasi serta sinopsis otomatis berbahasa Indonesia (`id-ID`).
 * **Pemberbersih Aset**: Mengunduh poster film serta mengompresi dan menajamkan logo jernih (`clearlogo.png`) menggunakan Pillow.
 * **Antarmuka MPV Bergaya Kodi**: Menampilkan overlay poster, rating, daftar genre, sinopsis terbungkus rapi, jam waktu nyata, serta estimasi waktu film selesai.
-* **Visibilitas Pintar**: Informasi otomatis muncul saat video dijeda (pause) atau kursor tetikus digerakkan, dan tersembunyi otomatis saat film dimainkan.
+* **Visibilitas Pintar**: Informasi otomatis muncul saat video dijeda (pause) atau kursor Mouse digerakkan, dan tersembunyi otomatis saat film dimainkan.
 
 ## Persyaratan Sistem
 
@@ -126,9 +126,9 @@ scan_movies
 ```
 
 ### 6. Menampilkan Informasi di MPV
-Putar video film atau serial TV Anda menggunakan MPV. Antarmuka informasi pintar akan muncul otomatis saat Anda menggerakkan tetikus atau menjeda video. Untuk memunculkan panel informasi lengkap (Poster dan Sinopsis), tekan tombol hotkey berikut pada papan ketik Anda:
+Putar video film atau serial TV Anda menggunakan MPV. Antarmuka informasi pintar akan muncul otomatis saat Anda menggerakkan Mouse atau menjeda video. Untuk memunculkan panel informasi lengkap (Poster dan Sinopsis), tekan tombol hotkey berikut pada papan ketik Anda:
 * Tombol **`=`** (Sama Dengan) [2]
-* Klik **Tombol Kanan Tetikus (Right-Click)** di jendela pemutar MPV [2]
+* Klik **Tombol Kanan Mouse (Right-Click)** di jendela pemutar MPV [2]
 
 ### 7. Screenshoot
 a. Clear Logo, Genre dan Jam akan muncul saat Mouse Bergerak dan akan menghilang dengan sendirinya. Default = 10 Detik.
