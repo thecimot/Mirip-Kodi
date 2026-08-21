@@ -12,16 +12,18 @@ Clear Logo, Genre dan Jam akan muncul saat Mouse Bergerak dan akan menghilang de
 Poster Rating dan Sinopsis akan muncul saat Right Clik (Klik Kanan Pada Mouse) dan akan hilang jika Klik Kanan Kedua Kalinya.
 ![Spring Poster](Screenshoot/Spring_Poster.png)
 
-# Media Library Scanner (Clean Log Run)
+# Mirip-Kodi (Media Library Scanner)
 
-Skrip otomatis berbasis Python untuk memindai direktori film (Movies) dan serial TV (TV Series), mengunduh metadata dari TMDB (The Movie Database), serta mengunduh sekaligus mengoptimalkan poster dan gambar clearlogo.
+Skrip otomatis berbasis Python untuk memindai direktori film (Movies) dan serial TV (TV Series), mengunduh metadata resmi dari TMDB (The Movie Database), serta mengunduh sekaligus menajamkan gambar poster dan clearlogo secara otomatis.
+
+Setelah instalasi, skrip ini dapat dijalankan langsung dari terminal sebagai perintah global sistem (`scan_movies`).
 
 ## Fitur Utama
 
 * Pemindaian otomatis folder Film dan Serial TV secara rekursif.
 * Mengunduh metadata resmi TMDB dan menyimpannya dalam format `metadata.json`.
 * Pencarian sinopsis otomatis dalam bahasa Indonesia (`id-ID`) dengan fallback bahasa Inggris (`en-US`).
-* Mengunduh poster film serta logo jernih (`clearlogo.png`).
+* Mengunduh poster film serta gambar logo jernih (`clearlogo.png`).
 * Pemrosesan gambar otomatis (kompresi ukuran dan penajaman logo) menggunakan Pillow.
 
 ## Persyaratan Sistem
@@ -55,29 +57,45 @@ echo 'export TMDB_API_KEY="isi_api_key_tmdb_anda"' >> ~/.bashrc
 source ~/.bashrc
 ```
 
-*Catatan: Ganti `"isi_bearer_token_tmdb_anda"` atau `"isi_api_key_tmdb_anda"` dengan kredensial asli dari akun developer TMDB Anda sebelum menekan Enter.*
+*Catatan: Ganti `"isi_bearer_token_tmdb_anda"` atau `"isi_api_key_tmdb_anda"` dengan kredensial asli dari akun developer TMDB Anda sebelum menjalankan perintah.*
 
-## Cara Penggunaan
+## Cara Instalasi (`.local/bin`)
+
+Agar skrip dapat dipanggil langsung dari mana saja di terminal tanpa mengetik ekstensi `.py`, ikuti langkah pemasangan berikut:
 
 1. **Clone Repositori ini:**
    ```bash
    git clone https://github.com
-   cd nama-repo
+   cd Mirip-Kodi
    ```
 
-2. **Sesuaikan Direktori Media (Opsional):**
-   Jika lokasi penyimpanan media Anda berbeda, sesuaikan variabel `MOVIES_DIR` dan `TV_DIR` di dalam file skrip Python sebelum dijalankan:
-   ```python
-   MOVIES_DIR = Path("/run/media/cimot/cimot/MOVIES")
-   TV_DIR = Path("/run/media/cimot/cimot/TV SERIES")
-   ```
-
-3. **Jalankan Skrip:**
-   Eksekusi skrip utama menggunakan Python 3 melalui terminal Anda:
+2. **Buat Folder Bin Lokal & Pindahkan File:**
    ```bash
-   python3 nama_file_skrip.py
+   mkdir -p ~/.local/bin
+   cp scan_movies ~/.local/bin/
    ```
+
+3. **Berikan Hak Akses Eksekusi:**
+   ```bash
+   chmod +x ~/.local/bin/scan_movies
+   ```
+
+4. **Daftarkan ke PATH Sistem (Jika belum):**
+   Pastikan baris berikut sudah ada di bagian bawah file `~/.bashrc` Anda:
+   ```bash
+   export PATH="HOME/.local/bin:PATH"
+   ```
+   Jangan lupa jalankan `source ~/.bashrc` setelah menambahkannya.
+
+## Cara Penggunaan
+
+Setelah langkah instalasi di atas selesai, Anda bisa langsung menjalankan pemindaian dari folder mana saja di terminal cukup dengan mengetik:
+
+```bash
+scan_movies
+```
 
 ## Lisensi
 
 Proyek ini dilisensikan di bawah **MIT License** - Lihat isi file kode untuk detail hak cipta oleh Hartono (2026).
+
