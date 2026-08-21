@@ -5,4 +5,4 @@ Sript ini Juga dapat menampilkan Poster, Rating dan Sinopsis Singkat (Overview) 
 Yang Tampilanya Mirip Dengan Kodi Media Center, ya kita tahu kalau player bawaan Kodi Media Center itu burik. 
 Dengan Script ini anda akan merasakan kualitas gambar MPV yang mendukung banyak GLSL Shader dan berbagai macam filter.
 
-Mirip Kodi Juga menyertakan Sript Python Untuk Scrapping Metadada,Poster,Clear logo dll dari TMBB
+Mirip Kodi Juga menyertakan Sript Python Untuk Auto Scrapping Metadada,Poster,Clear logo dll dari TMDB a.k.a https://www.themoviedb.org/
