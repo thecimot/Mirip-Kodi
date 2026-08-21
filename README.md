@@ -77,7 +77,37 @@ chmod +x ~/.local/bin/scan_movies
 ```
 *Pastikan folder `~/.local/bin` sudah terdaftar di variabel `$PATH` sistem Anda di dalam file `.bashrc`.*
 
-### 3. Pasang Antarmuka MPV (`movie-info.lua`)
+## 3. Kustomisasi Pengaturan Skrip (`scan_movies`)
+
+Anda dapat menyesuaikan folder tujuan media serta bahasa pencarian utama langsung di dalam skrip `scan_movies`. Buka file menggunakan teks editor pilihan Anda (misalnya Nano):
+
+```bash
+nano ~/.local/bin/scan_movies
+```
+
+  Cari blok kode konfigurasi di baris-baris awal file dan sesuaikan parameternya:
+
+  ### a. Menentukan Folder Media Tujuan
+  Ubah isi di dalam tanda kurung `Path("...")` sesuai dengan lokasi folder Film dan Serial TV di harddisk/media eksternal Anda:
+  ```python
+  # ============================================================
+  # KONFIGURASI DIREKTORI
+  # ============================================================
+
+  MOVIES_DIR = Path("/run/media/cimot/cimot/MOVIES")
+  TV_DIR = Path("/run/media/cimot/cimot/TV SERIES")
+  ```
+
+  ### b. Mengubah Preferensi Bahasa (Language)
+  Secara bawaan, skrip diatur untuk mengutamakan sinopsis berbahasa Indonesia. Jika metadata tidak tersedia, skrip akan otomatis menggunakan bahasa Inggris       sebagai cadangan (fallback). Anda dapat mengganti kode bahasa standar ISO 639-1 jika diperlukan:
+  ```python
+  PRIMARY_LANGUAGE = "id-ID"      # Bahasa utama pencarian metadata (Indonesia)
+  FALLBACK_LANGUAGE = "en-US"     # Bahasa cadangan jika bahasa utama kosong (Inggris)
+  ```
+
+  Setelah melakukan pengeditan, simpan perubahan file dengan menekan tombol kombinasi `Ctrl + O`, lalu `Enter`, dan tekan `Ctrl + X` untuk keluar dari editor Nano.
+
+### 4. Pasang Antarmuka MPV (`movie-info.lua`)
 Salin berkas skrip Lua langsung ke dalam direktori konfigurasi bawaan milik aplikasi MPV Anda:
 ```bash
 # Buat direktori scripts MPV jika belum ada
@@ -87,7 +117,7 @@ mkdir -p ~/.config/mpv/scripts
 cp movie-info.lua ~/.config/mpv/scripts/
 ```
 
-## Cara Penggunaan
+## 5. Cara Penggunaan
 
 ### Memindai Berkas Media
 Buka terminal Anda, masuk ke sistem, lalu cukup ketik perintah global berikut untuk memperbarui seluruh aset gambar serta metadata json secara otomatis:
@@ -95,12 +125,12 @@ Buka terminal Anda, masuk ke sistem, lalu cukup ketik perintah global berikut un
 scan_movies
 ```
 
-### Menampilkan Informasi di MPV
+### 6. Menampilkan Informasi di MPV
 Putar video film atau serial TV Anda menggunakan MPV. Antarmuka informasi pintar akan muncul otomatis saat Anda menggerakkan tetikus atau menjeda video. Untuk memunculkan panel informasi lengkap (Poster dan Sinopsis), tekan tombol hotkey berikut pada papan ketik Anda:
 * Tombol **`=`** (Sama Dengan) [2]
 * Klik **Tombol Kanan Tetikus (Right-Click)** di jendela pemutar MPV [2]
 
-### Screenshoot
+### 7. Screenshoot
 Clear Logo, Genre dan Jam akan muncul saat Mouse Bergerak dan akan menghilang dengan sendirinya. Default 10 detik.
 ![Spring Clear Logo](Screenshoot/Spring_Clear_Logo.png)
 
