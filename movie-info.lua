@@ -1,17 +1,8 @@
+local mp = require("mp")
 local utils = require("mp.utils")
 
 -- ============================================================
--- MOVIE INFO
--- ============================================================
-
-local info_visible = false
-local logo_visible = false
-local poster_visible = false
-
-local ass_overlay = mp.create_osd_overlay("ass-events")
-
--- ============================================================
--- CONFIG
+-- CONFIGURATION
 -- ============================================================
 
 local LOGO_ID = 7
@@ -21,16 +12,17 @@ local AUTO_HIDE_DELAY = 10
 -- CLEAR LOGO CONFIG
 local LOGO_LEFT = 0.02
 local LOGO_TOP  = 0.03
-local LOGO_MAX_WIDTH = 0.20
+local LOGO_MAX_WIDTH = 0.24
 local LOGO_MAX_HEIGHT = 0.14
 local GENRE_GAP = 20
 local GENRE_FONT_SIZE = 36
 
 -- CLOCK / END TIME CONFIG (POJOK KANAN ATAS)
-local CLOCK_RIGHT_MARGIN = 30
-local CLOCK_TOP_MARGIN = 20
-local CLOCK_NOW_FONT_SIZE = 65  -- Ukuran Jam Sekarang
-local CLOCK_END_FONT_SIZE = 35  -- Ukuran Jam Selesai
+local CLOCK_RIGHT_MARGIN = 40
+local CLOCK_TOP_MARGIN = 10
+local CLOCK_NOW_FONT_SIZE = 75
+local CLOCK_END_FONT_SIZE = 36
+local CLOCK_GAP_Y = 58 -- Mengatur jarak vertikal antara Jam dan END (agar rapat)
 
 -- POSTER CONFIG
 local POSTER_LEFT = 0.04
@@ -49,6 +41,12 @@ local OVERVIEW_FONT_SIZE = 37
 -- STATE & CACHE
 -- ============================================================
 
+local info_visible = false
+local logo_visible = false
+local poster_visible = false
+
+local ass_overlay = mp.create_osd_overlay("ass-events")
+
 local logo_raw_file = nil
 local poster_raw_file = nil
 
@@ -59,6 +57,17 @@ local cached_metadata = nil
 local cached_metadata_path = nil
 
 local auto_hide_timer = nil
+
+-- ============================================================
+-- HELPER ESCAPE ASS
+-- ============================================================
+
+local function ass_escape(text)
+    if not text then return "" end
+    text = tostring(text)
+    text = text:gsub("\\", "\\\\"):gsub("{", "\\{"):gsub("}", "\\}")
+    return text
+end
 
 -- ============================================================
 -- READ & LOAD METADATA
@@ -86,14 +95,44 @@ local function load_metadata()
         return cached_metadata
     end
 
-    local metadata_path = folder .. "/metadata.json"
-    local data = read_file(metadata_path)
+    local season_meta_path = folder .. "/season_metadata.json"
+    local data = read_file(season_meta_path)
+    local is_season = true
+
+    if not data then
+        local main_meta_path = folder .. "/metadata.json"
+        data = read_file(main_meta_path)
+        is_season = false
+
+        if not data then
+            local parent_folder = folder:match("^(.*)/[^/]+$")
+            if parent_folder then
+                main_meta_path = parent_folder .. "/metadata.json"
+                data = read_file(main_meta_path)
+            end
+        end
+    end
+
+    -- SYARAT UTAMA: Jika metadata tidak ada, kembalikan nil
     if not data then return nil end
 
     local metadata, err = utils.parse_json(data)
     if not metadata then
-        mp.msg.error("Invalid metadata.json: " .. tostring(err))
+        mp.msg.error("Invalid metadata JSON: " .. tostring(err))
         return nil
+    end
+
+    if is_season then
+        local show = metadata.show_title or metadata.title or "Unknown"
+        local s_name = metadata.season_name or metadata.name or ("Season " .. tostring(metadata.season_number or ""))
+        
+        metadata.title = ass_escape(show) .. "\\N{\\fs36}" .. ass_escape(s_name)
+        metadata.is_formatted_title = true
+        metadata.year = metadata.air_date and metadata.air_date:sub(1, 4) or ""
+    else
+        metadata.title = ass_escape(metadata.title or "Unknown")
+        metadata.is_formatted_title = true
+        metadata.year = metadata.first_air_date and metadata.first_air_date:sub(1, 4) or metadata.year or ""
     end
 
     metadata.folder = folder
@@ -101,13 +140,6 @@ local function load_metadata()
     cached_metadata_path = folder
 
     return metadata
-end
-
-local function ass_escape(text)
-    if not text then return "" end
-    text = tostring(text)
-    text = text:gsub("\\", "\\\\"):gsub("{", "\\{"):gsub("}", "\\}")
-    return text
 end
 
 -- ============================================================
@@ -180,17 +212,26 @@ local function cleanup_files()
 end
 
 -- ============================================================
--- SHOW CLEAR LOGO & HEADER INFO (GENRE & JAM)
+-- SHOW CLEAR LOGO & HEADER INFO (JAM TERMASUK DI SINI)
 -- ============================================================
 
-local function show_logo()
-    if logo_visible then return end
+local function find_clearlogo(folder)
+    local path = folder .. "/clearlogo.png"
+    if utils.file_info(path) then return path end
 
-    local metadata = load_metadata()
-    if not metadata then return end
+    local parent_folder = folder:match("^(.*)/[^/]+$")
+    if parent_folder then
+        path = parent_folder .. "/clearlogo.png"
+        if utils.file_info(path) then return path end
+    end
+    return nil
+end
 
-    local png_path = metadata.folder .. "/clearlogo.png"
-    if not utils.file_info(png_path) then return end
+local function show_logo(metadata)
+    if logo_visible or not metadata then return end
+
+    local png_path = find_clearlogo(metadata.folder)
+    if not png_path then return end
 
     if not logo_raw_file then
         local original_w, original_h = get_image_size(png_path)
@@ -222,9 +263,7 @@ local function show_logo()
     logo_visible = true
 end
 
-local function render_header_osd()
-    local metadata = load_metadata()
-    
+local function render_header_osd(metadata)
     local w, h = mp.get_osd_size()
     if w == 0 or h == 0 then return end
 
@@ -233,7 +272,7 @@ local function render_header_osd()
 
     local ass_parts = {}
 
-    -- 1. GENRE (Dikunci Rata Kiri di samping Logo)
+    -- Render Genre (jika ada logo)
     if metadata and metadata.genres then
         local genres = ass_escape(table.concat(metadata.genres, " / "))
         if genres ~= "" and logo_visible then
@@ -244,7 +283,7 @@ local function render_header_osd()
         end
     end
 
-    -- 2. JAM & END TIME (Dikunci Rata Kanan di Pojok Kanan Atas)
+    -- Render Jam & Estimasi Selesai (Posisi Vertikal Dihitung Terpisah Agar Rapat)
     local now_time = os.date("%H:%M")
     local time_remaining = mp.get_property_number("time-remaining")
 
@@ -256,21 +295,28 @@ local function render_header_osd()
     if time_remaining and time_remaining > 0 then
         local finish_timestamp = os.time() + math.floor(time_remaining)
         local finish_time = os.date("%H:%M", finish_timestamp)
-        -- Memaksa ganti baris dengan \N dalam satu konteks alignment \an9
-        clock_str = clock_str .. string.format("\\N{\\fs%d\\b0\\a&H40&}END %s", CLOCK_END_FONT_SIZE, finish_time)
+        local end_y = clock_y + CLOCK_GAP_Y
+        
+        clock_str = clock_str .. string.format("\n{\\an9\\pos(%d,%d)\\bord1\\shad1}{\\fs%d\\b0\\a&H40&}Ends at : %s", clock_x, end_y, CLOCK_END_FONT_SIZE, finish_time)
     end
 
     table.insert(ass_parts, clock_str)
 
-    -- Gabungkan elemen dengan baris baru agar MPV memisahkan grup render ASS
     ass_overlay.data = table.concat(ass_parts, "\n")
     ass_overlay:update()
 end
 
 local function show_header()
     if info_visible then return end
-    show_logo()
-    render_header_osd()
+
+    -- VALIDASI KETAT: Periksa keberadaan metadata json terlebih dahulu
+    local metadata = load_metadata()
+    if not metadata then
+        return -- Jangan tampilkan jam/logo jika metadata tidak ada
+    end
+
+    show_logo(metadata)
+    render_header_osd(metadata)
 end
 
 local function hide_header()
@@ -279,7 +325,7 @@ local function hide_header()
 end
 
 -- ============================================================
--- SHOW POSTER & INFO
+-- SHOW POSTER & FULL INFO
 -- ============================================================
 
 local function find_poster(folder)
@@ -287,6 +333,15 @@ local function find_poster(folder)
         local path = folder .. "/" .. name
         if utils.file_info(path) then return path end
     end
+
+    local parent_folder = folder:match("^(.*)/[^/]+$")
+    if parent_folder then
+        for _, name in ipairs({"poster.jpg", "poster.png", "poster.webp"}) do
+            local path = parent_folder .. "/" .. name
+            if utils.file_info(path) then return path end
+        end
+    end
+
     return nil
 end
 
@@ -347,7 +402,7 @@ local function show_info()
 
     local metadata = load_metadata()
     if not metadata then
-        mp.osd_message("Metadata tidak ditemukan", 3)
+        mp.osd_message("Metadata JSON tidak ditemukan", 2)
         return
     end
 
@@ -358,7 +413,7 @@ local function show_info()
     local text_x = poster_ok and (poster_x + poster_w + INFO_GAP) or math.floor(width * 0.08)
     local text_y = poster_ok and poster_y or math.floor(height * POSTER_TOP)
 
-    local title = ass_escape(metadata.title or "Unknown")
+    local title = metadata.is_formatted_title and metadata.title or ass_escape(metadata.title or "Unknown")
     local year = tostring(metadata.year or "")
     local rating = tonumber(metadata.vote_average) or 0
     local genres = ass_escape(metadata.genres and table.concat(metadata.genres, " • ") or "")
@@ -384,9 +439,12 @@ local function hide_info()
     info_visible = false
 end
 
-mp.add_key_binding("=", "movie-info", function()
+local function toggle_info()
     if info_visible then hide_info() else show_info() end
-end)
+end
+
+mp.add_key_binding("=", "movie-info-key", toggle_info)
+mp.add_forced_key_binding("MBTN_RIGHT", "movie-info-mouse", toggle_info)
 
 -- ============================================================
 -- AUTO VISIBILITY CONTROLLER
@@ -439,4 +497,5 @@ mp.register_event("shutdown", function()
     cleanup_files()
     ass_overlay:remove()
 end)
-mp.msg.info("movie-info.lua loaded")
+
+mp.msg.info("movie-info.lua (metadata check enabled) loaded")
