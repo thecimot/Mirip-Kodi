@@ -41,7 +41,7 @@ This script requires TMDB API authentication to function. It is recommended to u
 2. Click your profile icon in the top right corner and select **Settings**.
 3. In the left menu, click the **API** tab.
 4. Click the **Create** link under the "Request an API Key" section, then choose the **Developer** application type.
-5. Fill out the application information form (you can set the project name to `Mirip-Kodi` and the URL to your GitHub repository).
+5. Fill out the application information form (you can set the project name to `mirip-kodi` and the URL to your GitHub repository).
 6. After accepting the terms, find the **API Read Access Token (v4 auth)** section containing a long text code and copy it.
 
 ### Adding the Token to Your System:
@@ -66,8 +66,8 @@ Follow these installation steps in your terminal to set up the global scanner an
 ### 1. Clone the Repository
 
 ```bash
-git clone https://github.com/thecimot/Mirip-Kodi
-cd Mirip-Kodi
+git clone https://github.com/thecimot/mirip-kodi
+cd mirip-kodi
 
 ```
 
