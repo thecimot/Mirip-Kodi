@@ -1,4 +1,4 @@
-# Kodi-Like (Media Library Scanner & MPV OSD Overlay)
+# mirip-kodi (Media Library Scanner & MPV OSD Overlay)
 
 This project is an integrated Kodi-style media library automation system consisting of two main components:
 
