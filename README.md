@@ -160,10 +160,10 @@ Play your movie or TV series using MPV. The smart info interface appears automat
 ### 7. Screenshots
 
 a. Clear Logo, Genre, and Clock appear when the mouse moves and fade out automatically. Default duration = 10 seconds.
-![Spring Clear Logo](Screenshoot/Spring_Clear_Logo.png)
+![Spring Clear Logo](Screenshoot/Spring_Clear_Logo.webp)
 
 b. Poster, Rating, and Synopsis appear on Right-Click and toggle off with a second Right-Click.
-![Spring Poster](Screenshoot/Spring_Poster.png)
+![Spring Poster](Screenshoot/Spring_Poster.webp)
 
 ### 8. Example Media Folder Included
 
