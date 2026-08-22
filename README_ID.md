@@ -132,10 +132,10 @@ Putar video film atau serial TV Anda menggunakan MPV. Antarmuka informasi pintar
 
 ### 7. Screenshoot
 a. Clear Logo, Genre dan Jam akan muncul saat Mouse Bergerak dan akan menghilang dengan sendirinya. Default = 10 Detik.
-![Spring Clear Logo](Screenshoot/Spring_Clear_Logo.png)
+![Spring Clear Logo](Screenshoot/Spring_Clear_Logo.webp)
 
 b. Poster Rating dan Sinopsis akan muncul saat Right Clik (Klik Kanan Pada Mouse) dan akan hilang jika Klik Kanan Kedua Kalinya.
-![Spring Poster](Screenshoot/Spring_Poster.png)
+![Spring Poster](Screenshoot/Spring_Poster.webp)
 
 ### 8. Terdapat Folder Contoh Film Beserta Metatada,Poster,dll jika anda clone repositori inI. Untuk mengecek apakah plugin movie-info.lua bekerja di Player MPV.
 
