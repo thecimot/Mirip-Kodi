@@ -1,4 +1,4 @@
-# Mirip-Kodi (Media Library Scanner & MPV OSD Overlay)
+# mirip-kodi (Media Library Scanner & MPV OSD Overlay)
 
 Proyek ini adalah sistem otomasi pustaka media terintegrasi bergaya Kodi yang terdiri dari dua komponen utama:
 1. **`scan_movies`**: Skrip otomatis berbasis Python untuk memindai direktori film/serial TV dan mengunduh metadata serta gambar dari TMDB.
@@ -37,7 +37,7 @@ Skrip ini memerlukan otentikasi ke API TMDB agar dapat berfungsi. Disarankan men
 2. Klik ikon profil Anda di pojok kanan atas, lalu pilih **Settings**.
 3. Pada menu sebelah kiri, klik tab **API**.
 4. Klik tautan **Create** di bawah bagian "Request an API Key", lalu pilih jenis aplikasi **Developer**.
-5. Isi formulir informasi aplikasi yang diminta (Anda bisa mengisi nama proyek dengan `Mirip-Kodi` dan URL dengan tautan GitHub Anda).
+5. Isi formulir informasi aplikasi yang diminta (Anda bisa mengisi nama proyek dengan `mirip-kodi` dan URL dengan tautan GitHub Anda).
 6. Setelah menyetujui persyaratan, cari bagian **API Read Access Token (v4 auth)** yang berupa teks kode sangat panjang, lalu salin (copy) seluruh kode tersebut.
 
 ### Memasukkan Token ke Sistem:
@@ -59,8 +59,8 @@ Ikuti langkah-langkah pemasangan berikut di terminal untuk memasang pemindai glo
 
 ### 1. Unduh (Clone) Repositori
 ```bash
-git clone https://github.com/thecimot/Mirip-Kodi
-cd Mirip-Kodi
+git clone https://github.com/thecimot/mirip-kodi
+cd mirip-kodi
 ```
 
 ### 2. Pasang Pemindai Media (`scan_movies`) ke Sistem
